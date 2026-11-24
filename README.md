@@ -1,6 +1,5 @@
 # Habits Tracker
 
-Just for personal use.
 An Android app for a daily routine checklist and a workout log, backed by a .NET API and PostgreSQL.
 
 - **Routine:** a checklist you reorder by holding and dragging. Checked items reset at midnight.
