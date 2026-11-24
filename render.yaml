@@ -1,0 +1,32 @@
+# Render Blueprint: the API (Docker web service) and its PostgreSQL database.
+# Create both from the Render dashboard: New → Blueprint → pick this repository.
+services:
+  - type: web
+    name: habits-tracker-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerContext: ./api
+    dockerfilePath: ./api/Dockerfile
+    healthCheckPath: /health
+    # Only redeploy when the API changes, not when the mobile app does.
+    buildFilter:
+      paths:
+        - api/**
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: habits-db
+          property: connectionString
+      # Shared secret the mobile app sends as X-Api-Key. Render asks for it when the
+      # Blueprint is created; it must match EXPO_PUBLIC_API_KEY in EAS.
+      - key: ApiKey
+        sync: false
+
+databases:
+  - name: habits-db
+    plan: free
+    region: oregon
+    databaseName: habits
+    user: habits
+    postgresMajorVersion: "16"
