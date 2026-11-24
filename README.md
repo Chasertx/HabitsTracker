@@ -66,7 +66,7 @@ The Routine and Workouts tabs stay visible on every screen.
 
 | Part | Tech | Where it runs |
 | --- | --- | --- |
-| `mobile/` | Expo SDK 58, React Native 0.88, React 19, TypeScript, Expo Router (tabs + stacks), Reanimated 4, Gesture Handler 3 | Android phone (APK built by EAS) or an emulator via Expo Go |
+| `mobile/` | Expo SDK 58, React Native 0.88, React 19, TypeScript, Expo Router (tabs + stacks), Reanimated 4, Gesture Handler 3 | Android phone (sideloaded APK) or an emulator via Expo Go |
 | `api/` | .NET 8 minimal API, EF Core 8 with Npgsql and migrations, packaged as a Docker image | Render free web service, deployed from this repo by `render.yaml` |
 | Database | PostgreSQL 16 | Render free Postgres in production; Docker (`docker-compose.yml`) locally |
 
@@ -95,9 +95,10 @@ The Routine and Workouts tabs stay visible on every screen.
 │   ├── src/components/          Shared UI: DraggableList, DeleteButton, rows, composer
 │   ├── src/api.ts               Typed API client
 │   ├── app.json                 Expo config (name, package id, icons)
-│   └── eas.json                 EAS build profiles (APK for sideloading)
+│   └── eas.json                 EAS cloud build profiles (optional)
 ├── scripts/
-│   └── release-android.ps1      Build the APK on EAS and publish a GitHub Release
+│   ├── release-android.ps1      Build the APK (Docker, local or EAS) and publish a GitHub Release
+│   └── build-apk-in-docker.sh   The build steps run inside the Docker container
 ├── docs/                        README images (screenshots, install QR code)
 ├── docker-compose.yml           Local PostgreSQL for development
 └── render.yaml                  Render Blueprint: API service and Postgres database
@@ -112,7 +113,7 @@ The Routine and Workouts tabs stay visible on every screen.
 - [Node.js](https://nodejs.org/) 20 or newer
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/), for local PostgreSQL
 - Android Studio, with an Android emulator (AVD) set up
-- Optional, for releases: [GitHub CLI](https://cli.github.com/) and an [Expo](https://expo.dev/) account
+- Optional, for releases: [GitHub CLI](https://cli.github.com/), and CMake 3.31.6 from the Android SDK (`sdkmanager "cmake;3.31.6"`) for local APK builds on Windows. An [Expo](https://expo.dev/) account is only needed for EAS cloud builds
 
 ### 1. Start PostgreSQL
 ```powershell
@@ -136,7 +137,7 @@ The emulator reaches your PC's `localhost` at `10.0.2.2`, which the app uses by 
 
 To run against the deployed API instead, set these before `npx expo start`:
 ```powershell
-$env:EXPO_PUBLIC_API_URL = "{{API_URL}}"
+$env:EXPO_PUBLIC_API_URL = "https://habits-tracker-api-ilt7.onrender.com"
 $env:EXPO_PUBLIC_API_KEY = "<the API key>"
 ```
 
@@ -209,28 +210,44 @@ The service gets its settings from environment variables:
 
 **Redeploying:** Render redeploys automatically on every push to `main` that changes files under `api/`.
 
-The production API is at **{{API_URL}}** (health check: `{{API_URL}}/health`).
+The production API is at **https://habits-tracker-api-ilt7.onrender.com** (health check: `https://habits-tracker-api-ilt7.onrender.com/health`).
 
 **Free-tier limits:**
 - The web service sleeps after 15 minutes without traffic and takes up to a minute to wake.
 - The free database **expires 30 days after it was created** unless you upgrade it, so upgrade before then to keep your data.
 - The free database has 1 GB of storage.
 
-### Android app → EAS build → GitHub Release
+### Android app → APK → GitHub Release
 
-The APK is built on [EAS](https://expo.dev/eas) using the `preview` profile in `mobile/eas.json`, which produces an installable APK.
-- **API URL:** set in `eas.json`.
-- **API key:** stored as the EAS environment variable `EXPO_PUBLIC_API_KEY` in the `preview` environment, so it isn't committed. Note that it's still compiled into the app.
+The release APK is built by [`scripts/release-android.ps1`](scripts/release-android.ps1). In every mode, `expo prebuild` generates the native Android project, and then Gradle builds a signed release APK. Use `-Builder` to choose where that happens:
 
-To publish a new version:
+| `-Builder` | Where it builds | Needs |
+| --- | --- | --- |
+| `Docker` (default) | A Linux container ([`scripts/build-apk-in-docker.sh`](scripts/build-apk-in-docker.sh) in `reactnativecommunity/react-native-android`) | Docker Desktop only. Avoids Windows path-length and antivirus problems. The first run downloads the NDK and Gradle dependencies into Docker volumes |
+| `Local` | Your PC, through `mobile/android/` (gitignored) | JDK 17+, the Android SDK, and on Windows CMake 3.31.6 (`sdkmanager "cmake;3.31.6"`) |
+| `Eas` | Expo's cloud, using the `preview` profile in `mobile/eas.json` | An Expo account. The free plan allows a limited number of Android builds per month |
+
+The API URL and key are compiled in from these values:
+
+| Value | Where it comes from |
+| --- | --- |
+| API URL | The script's `-ApiUrl` parameter, which defaults to the Render URL |
+| API key | `$env:EXPO_PUBLIC_API_KEY`; it must match `ApiKey` on Render |
+
+Before each release, bump `version` and `android.versionCode` in `mobile/app.json` so Android installs it as an update. Then run:
 ```powershell
+$env:EXPO_PUBLIC_API_KEY = "<the ApiKey value from Render>"
 ./scripts/release-android.ps1 -Tag v1.0.1 -Notes "What changed"
 ```
-The script builds the APK, downloads it, and creates a GitHub Release with the asset `HabitsTracker.apk`. The QR code always points at `releases/latest/download/HabitsTracker.apk`, so it never needs regenerating.
+The script builds the APK and creates a GitHub Release with the asset `HabitsTracker.apk`. The QR code always points at `releases/latest/download/HabitsTracker.apk`, so it never needs regenerating.
+
+For EAS builds the API key comes from the EAS environment variable `EXPO_PUBLIC_API_KEY` in the `preview` environment, not from `$env:EXPO_PUBLIC_API_KEY`.
+
+**Signing:** Docker and Local builds are signed with the debug key from the Expo template, which stays the same between builds, so their updates install over each other. EAS builds use a different key stored by Expo. Android won't install an update signed with a different key: if you switch to or from EAS, uninstall the app first. Your data is on the server, so nothing is lost.
 
 To change the API key:
 1. Update `ApiKey` in the Render dashboard (service → **Environment**).
-2. Update the EAS variable:
+2. Use the new value for `EXPO_PUBLIC_API_KEY` when building. For EAS builds, update the variable:
    ```powershell
    cd mobile
    npx eas-cli env:update --variable-name EXPO_PUBLIC_API_KEY --variable-environment preview --value <new>
@@ -258,3 +275,5 @@ To change the API key:
 | Emulator app can't reach the local API | Make sure the API is running on port 5248. The emulator must use `10.0.2.2`, not `localhost`. |
 | Phone refuses to install the APK | Allow your browser or file manager to install unknown apps (Settings → Apps → Special app access). |
 | `dotnet build` fails because the `.exe` is locked | A `dotnet run` instance is still running. Stop it first. |
+| Gradle fails with *Filename longer than 260 characters* | Enable Windows long paths, install CMake 3.31.6 (`sdkmanager "cmake;3.31.6"`), and add `cmake.dir=<sdk>/cmake/3.31.6` to `mobile/android/local.properties`. The release script writes that file. The SDK's default CMake 3.22.1 bundles Ninja 1.10, which can't handle long paths. |
+| Gradle fails with *ld.lld.exe: Access is denied* or *ninja: CreateProcess: Access is denied* | Antivirus is blocking the Android build tools. Build with `-Builder Docker` (the default), or add an antivirus exclusion for the Android SDK and the repo. |

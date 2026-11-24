@@ -12,14 +12,14 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "__API_URL__"
+        "EXPO_PUBLIC_API_URL": "https://habits-tracker-api-ilt7.onrender.com"
       }
     },
     "production": {
       "environment": "production",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "__API_URL__"
+        "EXPO_PUBLIC_API_URL": "https://habits-tracker-api-ilt7.onrender.com"
       }
     }
   }
