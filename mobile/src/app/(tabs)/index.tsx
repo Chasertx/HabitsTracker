@@ -9,13 +9,13 @@ import {
   type ScrollViewInstance,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { api, type ListItem } from '../../api';
-import Composer from '../../components/Composer';
+import { AddButton, DraftInput, useDraft } from '../../components/Composer';
 import DraggableList from '../../components/DraggableList';
 import { EmptyState, ErrorBanner } from '../../components/Feedback';
 import ItemRow from '../../components/ItemRow';
+import ScreenHeader from '../../components/ScreenHeader';
 import { colors, radius } from '../../theme';
 
 const msUntilNextMidnight = () => {
@@ -25,7 +25,6 @@ const msUntilNextMidnight = () => {
 };
 
 export default function RoutineScreen() {
-  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollViewInstance>(null);
   const [items, setItems] = useState<ListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +85,8 @@ export default function RoutineScreen() {
       throw e;
     }
   }, []);
+
+  const draft = useDraft(add);
 
   // Toggle, delete and reorder update the UI immediately, then roll back if the request fails.
   const toggle = useCallback(async (item: ListItem) => {
@@ -149,13 +150,13 @@ export default function RoutineScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
-        <Text style={styles.eyebrow}>
-          {today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-        </Text>
-        <Text style={styles.heading}>Routine</Text>
-        <Composer placeholder="Add an item…" onSubmit={add} maxLength={200} />
-      </View>
+      <ScreenHeader
+        eyebrow={today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+        title="Routine"
+        actions={<AddButton draft={draft} label="Add item" />}
+      >
+        <DraftInput draft={draft} placeholder="Add an item…" maxLength={200} />
+      </ScreenHeader>
 
       <View style={styles.body}>
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
@@ -214,24 +215,6 @@ export default function RoutineScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: 16, paddingBottom: 16 },
-  eyebrow: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginLeft: 6,
-  },
-  heading: {
-    color: colors.text,
-    fontSize: 36,
-    fontWeight: '800',
-    marginTop: 4,
-    marginBottom: 18,
-    marginLeft: 6,
-    letterSpacing: -0.5,
-  },
   body: { flex: 1, paddingHorizontal: 16 },
   loader: { flex: 1 },
   listContent: { paddingTop: 4, paddingBottom: 16, flexGrow: 1 },

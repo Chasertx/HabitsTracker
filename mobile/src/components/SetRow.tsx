@@ -1,6 +1,8 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ExerciseSet } from '../api';
+import { formatWeight } from '../format';
 import { colors, radius } from '../theme';
 import DeleteButton from './DeleteButton';
 
@@ -9,9 +11,8 @@ type Props = {
   index: number;
   onChange: (set: ExerciseSet, values: { reps?: number; weight?: number }) => void;
   onDelete: (set: ExerciseSet) => void;
+  onToggle: (set: ExerciseSet) => void;
 };
-
-const formatWeight = (w: number) => String(Math.round(w * 100) / 100);
 
 /** Returns the reps typed, or null if the text isn't a valid rep count. */
 const parseReps = (text: string) => {
@@ -25,8 +26,11 @@ const parseWeight = (text: string) => {
   return Number.isNaN(value) || value < 0 || value > 10000 ? null : value;
 };
 
-/** One set: editable reps and weight, saved when a field loses focus or the row goes away. */
-function SetRow({ set, index, onChange, onDelete }: Props) {
+/**
+ * One set: a check-off button (showing the set number until it's done), editable reps and
+ * weight saved when a field loses focus or the row goes away, and a two-tap delete.
+ */
+function SetRow({ set, index, onChange, onDelete, onToggle }: Props) {
   const [reps, setReps] = useState(String(set.reps));
   const [weight, setWeight] = useState(formatWeight(set.weight));
 
@@ -75,10 +79,21 @@ function SetRow({ set, index, onChange, onDelete }: Props) {
   };
 
   return (
-    <View style={styles.row}>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{index + 1}</Text>
-      </View>
+    <View style={[styles.row, set.isCompleted && styles.rowDone]}>
+      <Pressable
+        onPress={() => onToggle(set)}
+        hitSlop={6}
+        style={({ pressed }) => [styles.badge, set.isCompleted && styles.badgeDone, pressed && styles.pressed]}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: set.isCompleted }}
+        accessibilityLabel={`Set ${index + 1} done`}
+      >
+        {set.isCompleted ? (
+          <Ionicons name="checkmark" size={22} color="#fff" />
+        ) : (
+          <Text style={styles.badgeText}>{index + 1}</Text>
+        )}
+      </Pressable>
       <TextInput
         value={reps}
         onChangeText={changeReps}
@@ -86,7 +101,7 @@ function SetRow({ set, index, onChange, onDelete }: Props) {
         keyboardType="number-pad"
         selectTextOnFocus
         maxLength={4}
-        style={styles.input}
+        style={[styles.input, set.isCompleted && styles.inputDone]}
         accessibilityLabel={`Set ${index + 1} reps`}
       />
       <TextInput
@@ -96,7 +111,7 @@ function SetRow({ set, index, onChange, onDelete }: Props) {
         keyboardType="decimal-pad"
         selectTextOnFocus
         maxLength={7}
-        style={styles.input}
+        style={[styles.input, set.isCompleted && styles.inputDone]}
         accessibilityLabel={`Set ${index + 1} weight`}
       />
       <View style={setColumns.action}>
@@ -117,7 +132,7 @@ export default memo(SetRow);
 
 /** Column widths shared with the table header in the exercise screen. */
 export const setColumns = StyleSheet.create({
-  set: { width: 36, alignItems: 'center' },
+  set: { width: 40, alignItems: 'center' },
   value: { flex: 1 },
   action: { width: 36 },
 });
@@ -135,13 +150,18 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
+  rowDone: { borderColor: colors.success, backgroundColor: colors.successSoft },
   badge: {
     ...setColumns.set,
-    height: 36,
+    height: 40,
     borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.accent,
     backgroundColor: colors.accentSoft,
     justifyContent: 'center',
   },
+  badgeDone: { backgroundColor: colors.success, borderColor: colors.success },
+  pressed: { opacity: 0.7 },
   badgeText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
   input: {
     ...setColumns.value,
@@ -153,4 +173,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  inputDone: { color: colors.textMuted },
 });

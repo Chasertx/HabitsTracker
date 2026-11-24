@@ -11,12 +11,26 @@ type Props = {
   onPress?: () => void;
   onDelete: () => void;
   deleteLabel: string;
+  /** Outlines the row, e.g. for a workout that's in progress. */
+  highlight?: boolean;
+  /** Dims the title, e.g. for an exercise whose sets are all done. */
+  done?: boolean;
 };
 
 /** A card row with a title, optional leading/trailing content, and a delete (×) button. */
-function SimpleRow({ title, subtitle, leading, trailing, onPress, onDelete, deleteLabel }: Props) {
+function SimpleRow({
+  title,
+  subtitle,
+  leading,
+  trailing,
+  onPress,
+  onDelete,
+  deleteLabel,
+  highlight,
+  done,
+}: Props) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, highlight && styles.rowHighlight]}>
       <Pressable
         onPress={onPress}
         disabled={!onPress}
@@ -26,7 +40,7 @@ function SimpleRow({ title, subtitle, leading, trailing, onPress, onDelete, dele
       >
         {leading}
         <View style={styles.text}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={[styles.title, done && styles.titleDone]} numberOfLines={2}>
             {title}
           </Text>
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -61,8 +75,10 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     gap: 14,
   },
+  rowHighlight: { borderColor: colors.success, borderWidth: 1 },
   text: { flex: 1 },
   title: { color: colors.text, fontSize: 16, fontWeight: '600', lineHeight: 22 },
+  titleDone: { color: colors.textMuted },
   subtitle: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
   deleteSlot: { marginHorizontal: 10 },
 });

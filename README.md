@@ -3,12 +3,13 @@
 An Android app for a daily routine checklist and a workout log, backed by a .NET API and PostgreSQL.
 
 - **Routine:** a checklist you reorder by holding and dragging. Checked items reset at midnight.
-- **Workouts:** named workouts, each with a list of exercises. Each exercise records its sets, reps and weight.
+- **Workouts:** named workouts, each with a list of exercises and sets (reps and weight). Start a workout, check sets off as you go, then finish to log it in your history.
 
 <p align="center">
-  <img src="docs/screenshots/routine.png" width="240" alt="Routine tab: a daily checklist with a progress bar" />
-  <img src="docs/screenshots/workouts.png" width="240" alt="Workouts tab: a list of workouts with exercise counts" />
-  <img src="docs/screenshots/sets.png" width="240" alt="Exercise screen: sets with editable reps and weight" />
+  <img src="docs/screenshots/routine.png" width="200" alt="Routine tab: a daily checklist with a progress bar" />
+  <img src="docs/screenshots/workout-active.png" width="200" alt="A workout in progress with a timer, Finish button and per-exercise progress" />
+  <img src="docs/screenshots/sets.png" width="200" alt="Exercise screen: sets checked off with reps and weight" />
+  <img src="docs/screenshots/history.png" width="200" alt="Workout history with totals" />
 </p>
 
 ---
@@ -32,7 +33,7 @@ Installing a newer release over the old one keeps your data, because the data li
 ## Features
 
 ### Routine
-- **Add items** from the box under the title.
+- **Add items:** type in the box under the title, then tap **+** (next to the title) or press Enter.
 - **Check items off.** The progress bar at the bottom shows how many are done.
 - **Reorder:** hold an item about a third of a second until it lifts, then drag it.
 - **Delete:** tap **×** once to arm it (it turns red), then tap it again within 3 seconds.
@@ -42,15 +43,25 @@ Installing a newer release over the old one keeps your data, because the data li
   - The reset happens when the list loads, so it still applies if the app or server was off at midnight.
 
 ### Workouts
-- **Create workouts** by name. Each shows its exercise count.
-- **Open a workout** to add or remove exercises. Each exercise shows its set count.
+- **Create workouts** by name. Each shows its exercise count, and an **In progress** label while it's running.
+- **Open a workout** to add or remove exercises. Each exercise shows how many of its sets are done.
 - **Open an exercise** to log its sets:
   - **Add set** copies the previous set's reps and weight.
   - Edit reps and weight inline. Changes save when you leave the field or the screen.
+  - **Check off a set** by tapping its number; it turns green.
+  - Once every set is checked, the exercise is marked complete with a green check.
   - Remove a set with the two-tap **×**.
+- **Run a workout:**
+  1. Tap **Start workout**. This starts a timer and clears last time's checks.
+  2. Check sets off as you go. The bar shows elapsed time and how many sets are done.
+  3. Tap **Finish** to save the session to history, or **Cancel** then **Discard?** to throw it away.
+- **History** (clock button next to **+** on the Workouts tab) lists every finished session:
+  - Totals for workouts, time trained and volume (reps × weight of completed sets).
+  - Each session shows its date, duration and every set, with done or skipped marked.
+  - A history entry keeps its snapshot even if you later edit or delete the workout.
 - Weight is unitless: use lb or kg consistently.
 
-The Routine and Workouts tabs stay visible on every screen.
+The Routine and Workouts tabs stay visible on every screen, and sit above the phone's on-screen navigation buttons or gesture bar.
 
 ---
 
@@ -78,8 +89,8 @@ The Routine and Workouts tabs stay visible on every screen.
 .
 ├── api/                         .NET 8 API
 │   ├── Program.cs               Startup: database, CORS, API key, endpoint mapping
-│   ├── Endpoints/               Items (routine), Workouts, Exercises and sets
-│   ├── Models/                  ListItem, Workout, Exercise, ExerciseSet
+│   ├── Endpoints/               Items (routine), Workouts + sessions, Exercises and sets, History
+│   ├── Models/                  ListItem, Workout, Exercise, ExerciseSet, WorkoutSession
 │   ├── Data/
 │   │   ├── AppDbContext.cs      EF Core model and relationships (cascade deletes)
 │   │   └── DatabaseConfig.cs    Reads DATABASE_URL or ConnectionStrings:Default
@@ -91,8 +102,8 @@ The Routine and Workouts tabs stay visible on every screen.
 ├── mobile/                      Expo / React Native app
 │   ├── src/app/                 Routes (Expo Router)
 │   │   ├── (tabs)/index.tsx     Routine tab
-│   │   └── (tabs)/workouts/     Workouts tab: list, workout, exercise (sets) screens
-│   ├── src/components/          Shared UI: DraggableList, DeleteButton, rows, composer
+│   │   └── (tabs)/workouts/     Workouts tab: list, workout, exercise (sets) and history screens
+│   ├── src/components/          Shared UI: DraggableList, DeleteButton, SessionBar, rows, header, composer
 │   ├── src/api.ts               Typed API client
 │   ├── app.json                 Expo config (name, package id, icons)
 │   └── eas.json                 EAS cloud build profiles (optional)
@@ -175,13 +186,19 @@ All `/api` routes take and return JSON. When the `ApiKey` setting is set (it is 
 | POST | `/api/workouts` | Create `{ "name": "..." }` |
 | PATCH | `/api/workouts/{id}` | Rename `{ "name": "..." }` |
 | DELETE | `/api/workouts/{id}` | Delete a workout, its exercises and their sets |
+| POST | `/api/workouts/{id}/start` | Start a session (clears set checks). Returns the workout |
+| POST | `/api/workouts/{id}/finish` | Log the running session to history, then reset. Returns `{ sessionId }`; `409` if not started |
+| POST | `/api/workouts/{id}/cancel` | Discard the running session |
 | POST | `/api/workouts/{id}/exercises` | Add an exercise `{ "name": "..." }` |
 | DELETE | `/api/workouts/{id}/exercises/{exerciseId}` | Remove an exercise and its sets |
 | GET | `/api/exercises/{id}` | An exercise with its sets |
 | PATCH | `/api/exercises/{id}` | Rename `{ "name": "..." }` |
 | POST | `/api/exercises/{id}/sets` | Add a set `{ "reps"?, "weight"? }`; omitted values copy the previous set |
-| PATCH | `/api/sets/{id}` | Update `{ "reps"?, "weight"? }` (reps 0–1000, weight 0–10000) |
+| PATCH | `/api/sets/{id}` | Update `{ "reps"?, "weight"?, "isCompleted"? }` (reps 0–1000, weight 0–10000) |
 | DELETE | `/api/sets/{id}` | Delete a set |
+| GET | `/api/history?workoutId=` | Finished sessions, newest first, with set counts and volume |
+| GET | `/api/history/{id}` | A session with its exercises and sets |
+| DELETE | `/api/history/{id}` | Delete a session from history |
 
 Invalid input returns `400` with a validation problem body. Unknown ids return `404`.
 

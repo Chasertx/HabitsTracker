@@ -29,5 +29,6 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapItemEndpoints();
 app.MapWorkoutEndpoints();
 app.MapExerciseEndpoints();
+app.MapHistoryEndpoints();
 
 app.Run();

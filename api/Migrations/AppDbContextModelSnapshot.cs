@@ -62,6 +62,9 @@ namespace HabitsTracker.Api.Migrations
                     b.Property<int>("ExerciseId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Reps")
                         .HasColumnType("integer");
 
@@ -110,6 +113,62 @@ namespace HabitsTracker.Api.Migrations
                     b.ToTable("Items");
                 });
 
+            modelBuilder.Entity("HabitsTracker.Api.Models.SessionExercise", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SessionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.ToTable("SessionExercises");
+                });
+
+            modelBuilder.Entity("HabitsTracker.Api.Models.SessionSet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Reps")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SessionExerciseId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionExerciseId");
+
+                    b.ToTable("SessionSets");
+                });
+
             modelBuilder.Entity("HabitsTracker.Api.Models.Workout", b =>
                 {
                     b.Property<int>("Id")
@@ -117,6 +176,9 @@ namespace HabitsTracker.Api.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ActiveSessionStartedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -129,6 +191,37 @@ namespace HabitsTracker.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Workouts");
+                });
+
+            modelBuilder.Entity("HabitsTracker.Api.Models.WorkoutSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("WorkoutId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WorkoutName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinishedAt");
+
+                    b.HasIndex("WorkoutId");
+
+                    b.ToTable("Sessions");
                 });
 
             modelBuilder.Entity("HabitsTracker.Api.Models.Exercise", b =>
@@ -149,12 +242,48 @@ namespace HabitsTracker.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("HabitsTracker.Api.Models.SessionExercise", b =>
+                {
+                    b.HasOne("HabitsTracker.Api.Models.WorkoutSession", null)
+                        .WithMany("Exercises")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HabitsTracker.Api.Models.SessionSet", b =>
+                {
+                    b.HasOne("HabitsTracker.Api.Models.SessionExercise", null)
+                        .WithMany("Sets")
+                        .HasForeignKey("SessionExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HabitsTracker.Api.Models.WorkoutSession", b =>
+                {
+                    b.HasOne("HabitsTracker.Api.Models.Workout", null)
+                        .WithMany()
+                        .HasForeignKey("WorkoutId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("HabitsTracker.Api.Models.Exercise", b =>
                 {
                     b.Navigation("Sets");
                 });
 
+            modelBuilder.Entity("HabitsTracker.Api.Models.SessionExercise", b =>
+                {
+                    b.Navigation("Sets");
+                });
+
             modelBuilder.Entity("HabitsTracker.Api.Models.Workout", b =>
+                {
+                    b.Navigation("Exercises");
+                });
+
+            modelBuilder.Entity("HabitsTracker.Api.Models.WorkoutSession", b =>
                 {
                     b.Navigation("Exercises");
                 });

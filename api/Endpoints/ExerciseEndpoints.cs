@@ -6,8 +6,10 @@ namespace HabitsTracker.Api.Endpoints;
 
 public static class ExerciseEndpoints
 {
-    public record SetRequest(int? Reps, double? Weight);
-    public record ExerciseDetail(int Id, int WorkoutId, string WorkoutName, string Name, List<ExerciseSet> Sets);
+    public record SetRequest(int? Reps, double? Weight, bool? IsCompleted);
+    public record ExerciseDetail(
+        int Id, int WorkoutId, string WorkoutName, DateTime? WorkoutActiveSessionStartedAt, string Name,
+        List<ExerciseSet> Sets);
 
     private const int MaxReps = 1000;
     private const double MaxWeight = 10_000;
@@ -24,6 +26,7 @@ public static class ExerciseEndpoints
                     x.Id,
                     x.WorkoutId,
                     db.Workouts.Where(w => w.Id == x.WorkoutId).Select(w => w.Name).First(),
+                    db.Workouts.Where(w => w.Id == x.WorkoutId).Select(w => w.ActiveSessionStartedAt).First(),
                     x.Name,
                     x.Sets.OrderBy(s => s.SortOrder).ThenBy(s => s.Id).ToList()))
                 .FirstOrDefaultAsync();
@@ -76,6 +79,7 @@ public static class ExerciseEndpoints
 
             if (request.Reps is int reps) set.Reps = reps;
             if (request.Weight is double weight) set.Weight = weight;
+            if (request.IsCompleted is bool done) set.IsCompleted = done;
             await db.SaveChangesAsync();
             return Results.Ok(set);
         });

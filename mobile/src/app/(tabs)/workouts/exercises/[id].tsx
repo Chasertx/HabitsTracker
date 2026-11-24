@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { api, type ExerciseSet } from '../../../../api';
 import { EmptyState, ErrorBanner } from '../../../../components/Feedback';
@@ -30,6 +31,7 @@ export default function ExerciseScreen() {
   const scrollRef = useRef<ScrollViewInstance>(null);
   const [name, setName] = useState(params.name ?? '');
   const [workoutName, setWorkoutName] = useState('');
+  const [sessionActive, setSessionActive] = useState(false);
   const [sets, setSets] = useState<ExerciseSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,6 +44,7 @@ export default function ExerciseScreen() {
         (exercise) => {
           setName(exercise.name);
           setWorkoutName(exercise.workoutName);
+          setSessionActive(exercise.workoutActiveSessionStartedAt !== null);
           setSets(exercise.sets);
           setError(null);
         },
@@ -76,7 +79,7 @@ export default function ExerciseScreen() {
   }, [exerciseId]);
 
   const updateSet = useCallback(
-    async (set: ExerciseSet, values: { reps?: number; weight?: number }) => {
+    async (set: ExerciseSet, values: { reps?: number; weight?: number; isCompleted?: boolean }) => {
       setSets((prev) => prev.map((s) => (s.id === set.id ? { ...s, ...values } : s)));
       try {
         await api.exercises.updateSet(set.id, values);
@@ -86,6 +89,14 @@ export default function ExerciseScreen() {
       }
     },
     [load],
+  );
+
+  const toggleSet = useCallback(
+    (set: ExerciseSet) => {
+      if (!set.isCompleted) Haptics.selectionAsync().catch(() => {});
+      updateSet(set, { isCompleted: !set.isCompleted });
+    },
+    [updateSet],
   );
 
   const removeSet = useCallback(
@@ -102,9 +113,11 @@ export default function ExerciseScreen() {
   );
 
   const totalReps = sets.reduce((sum, s) => sum + s.reps, 0);
+  const doneCount = sets.filter((s) => s.isCompleted).length;
+  const allDone = sets.length > 0 && doneCount === sets.length;
   const summary = [
     workoutName,
-    `${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`,
+    sets.length > 0 ? `${doneCount}/${sets.length} sets done` : 'No sets',
     sets.length > 0 ? `${totalReps} reps` : null,
   ]
     .filter(Boolean)
@@ -119,6 +132,17 @@ export default function ExerciseScreen() {
       <Stack.Screen options={{ title: name }} />
 
       <Text style={styles.summary}>{summary}</Text>
+      {allDone ? (
+        <View style={[styles.notice, styles.noticeDone]}>
+          <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+          <Text style={styles.noticeText}>Exercise complete</Text>
+        </View>
+      ) : sessionActive ? (
+        <View style={styles.notice}>
+          <View style={styles.liveDot} />
+          <Text style={styles.noticeText}>Workout in progress · tap a set number to check it off</Text>
+        </View>
+      ) : null}
 
       <View style={styles.body}>
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
@@ -156,6 +180,7 @@ export default function ExerciseScreen() {
                     index={index}
                     onChange={updateSet}
                     onDelete={removeSet}
+                    onToggle={toggleSet}
                   />
                 ))}
               </>
@@ -180,6 +205,20 @@ export default function ExerciseScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  noticeDone: { backgroundColor: colors.successSoft },
+  noticeText: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
+  liveDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.success },
   summary: {
     color: colors.textMuted,
     fontSize: 14,

@@ -14,6 +14,8 @@ export type WorkoutSummary = {
   name: string;
   exerciseCount: number;
   createdAt: string;
+  /** Set while a session of this workout is running. */
+  activeSessionStartedAt: string | null;
 };
 
 export type Exercise = {
@@ -22,6 +24,7 @@ export type Exercise = {
   name: string;
   sortOrder: number;
   setCount: number;
+  completedSetCount: number;
 };
 
 export type ExerciseSet = {
@@ -29,6 +32,7 @@ export type ExerciseSet = {
   exerciseId: number;
   reps: number;
   weight: number;
+  isCompleted: boolean;
   sortOrder: number;
 };
 
@@ -36,6 +40,7 @@ export type ExerciseDetail = {
   id: number;
   workoutId: number;
   workoutName: string;
+  workoutActiveSessionStartedAt: string | null;
   name: string;
   sets: ExerciseSet[];
 };
@@ -44,7 +49,34 @@ export type WorkoutDetail = {
   id: number;
   name: string;
   createdAt: string;
+  activeSessionStartedAt: string | null;
   exercises: Exercise[];
+};
+
+export type SessionSummary = {
+  id: number;
+  workoutId: number | null;
+  workoutName: string;
+  startedAt: string;
+  finishedAt: string;
+  exerciseCount: number;
+  setCount: number;
+  completedSetCount: number;
+  /** Reps × weight over completed sets. */
+  volume: number;
+};
+
+export type SessionDetail = {
+  id: number;
+  workoutId: number | null;
+  workoutName: string;
+  startedAt: string;
+  finishedAt: string;
+  exercises: {
+    id: number;
+    name: string;
+    sets: { id: number; reps: number; weight: number; isCompleted: boolean }[];
+  }[];
 };
 
 // Set EXPO_PUBLIC_API_URL to point at a deployed API (release builds get it from eas.json).
@@ -96,14 +128,25 @@ export const api = {
       request<Exercise>(`/workouts/${workoutId}/exercises`, json('POST', { name })),
     removeExercise: (workoutId: number, exerciseId: number) =>
       request<void>(`/workouts/${workoutId}/exercises/${exerciseId}`, { method: 'DELETE' }),
+    /** Starts a session with all sets unchecked. */
+    start: (id: number) => request<WorkoutDetail>(`/workouts/${id}/start`, { method: 'POST' }),
+    /** Logs the running session to history and resets the workout. */
+    finish: (id: number) => request<{ sessionId: number }>(`/workouts/${id}/finish`, { method: 'POST' }),
+    /** Abandons the running session without logging it. */
+    cancel: (id: number) => request<WorkoutDetail>(`/workouts/${id}/cancel`, { method: 'POST' }),
   },
   exercises: {
     get: (id: number) => request<ExerciseDetail>(`/exercises/${id}`),
     /** Leave values out to copy them from the exercise's last set. */
     addSet: (exerciseId: number, values: Partial<Pick<ExerciseSet, 'reps' | 'weight'>> = {}) =>
       request<ExerciseSet>(`/exercises/${exerciseId}/sets`, json('POST', values)),
-    updateSet: (setId: number, values: Partial<Pick<ExerciseSet, 'reps' | 'weight'>>) =>
+    updateSet: (setId: number, values: Partial<Pick<ExerciseSet, 'reps' | 'weight' | 'isCompleted'>>) =>
       request<ExerciseSet>(`/sets/${setId}`, json('PATCH', values)),
     removeSet: (setId: number) => request<void>(`/sets/${setId}`, { method: 'DELETE' }),
+  },
+  history: {
+    list: () => request<SessionSummary[]>('/history'),
+    get: (id: number) => request<SessionDetail>(`/history/${id}`),
+    remove: (id: number) => request<void>(`/history/${id}`, { method: 'DELETE' }),
   },
 };

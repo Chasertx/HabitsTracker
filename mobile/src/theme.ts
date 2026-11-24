@@ -10,6 +10,8 @@ export const colors = {
   accentSoft: 'rgba(124, 108, 255, 0.16)',
   danger: '#FF5D73',
   dangerSoft: 'rgba(255, 93, 115, 0.14)',
+  success: '#2FBF71',
+  successSoft: 'rgba(47, 191, 113, 0.14)',
 };
 
 export const radius = { sm: 10, md: 16, lg: 22, pill: 999 };

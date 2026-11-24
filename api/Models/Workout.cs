@@ -5,6 +5,8 @@ public class Workout
     public int Id { get; set; }
     public required string Name { get; set; }
     public DateTime CreatedAt { get; set; }
+    /// <summary>When the in-progress session began; null when the workout isn't running.</summary>
+    public DateTime? ActiveSessionStartedAt { get; set; }
     public List<Exercise> Exercises { get; set; } = [];
 }
 
@@ -25,5 +27,7 @@ public class ExerciseSet
     public int Reps { get; set; }
     /// <summary>Unitless; the app decides how to label it.</summary>
     public double Weight { get; set; }
+    /// <summary>Checked off in the current session. Cleared when a session starts, finishes or is cancelled.</summary>
+    public bool IsCompleted { get; set; }
     public int SortOrder { get; set; }
 }
