@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { api, type ExerciseSet } from '../../../../api';
+import { api, type Exercise, type ExerciseSet } from '../../../../api';
 import { EmptyState, ErrorBanner } from '../../../../components/Feedback';
 import SetRow, { setColumns } from '../../../../components/SetRow';
 import { colors, radius } from '../../../../theme';
@@ -38,6 +38,7 @@ export default function ExerciseScreen() {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finishedSessionId, setFinishedSessionId] = useState<number | null>(null);
+  const [siblings, setSiblings] = useState<Exercise[]>([]);
 
   const load = useCallback(
     () =>
@@ -48,6 +49,11 @@ export default function ExerciseScreen() {
           setSessionActive(exercise.workoutActiveSessionStartedAt !== null);
           setSets(exercise.sets);
           setError(null);
+          // The workout's other exercises, for the "Next exercise" button.
+          api.workouts.get(exercise.workoutId).then(
+            (w) => setSiblings(w.exercises),
+            () => {},
+          );
         },
         () => setError("Couldn't load this exercise. Pull down to retry."),
       ),
@@ -122,6 +128,13 @@ export default function ExerciseScreen() {
   const totalReps = sets.reduce((sum, s) => sum + s.reps, 0);
   const doneCount = sets.filter((s) => s.isCompleted).length;
   const allDone = sets.length > 0 && doneCount === sets.length;
+  // Next exercise in workout order that still has sets to do, wrapping around to earlier ones.
+  const position = siblings.findIndex((x) => x.id === exerciseId);
+  const ordered = position < 0 ? [] : [...siblings.slice(position + 1), ...siblings.slice(0, position)];
+  const next = ordered.find((x) => x.completedSetCount < x.setCount) ?? null;
+  const goNext = () =>
+    next && router.replace({ pathname: '/workouts/exercises/[id]', params: { id: String(next.id), name: next.name } });
+
   const summary = [
     workoutName,
     sets.length > 0 ? `${doneCount}/${sets.length} sets done` : 'No sets',
@@ -208,6 +221,23 @@ export default function ExerciseScreen() {
               <Ionicons name="add" size={22} color={colors.accent} />
               <Text style={styles.addSetText}>Add set</Text>
             </Pressable>
+
+            {allDone && next && finishedSessionId === null && (
+              <Pressable
+                onPress={goNext}
+                style={({ pressed }) => [styles.next, pressed && styles.addSetPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={`Next exercise: ${next.name}`}
+              >
+                <View style={styles.nextLabels}>
+                  <Text style={styles.nextText}>Next exercise</Text>
+                  <Text style={styles.nextName} numberOfLines={1}>
+                    {next.name}
+                  </Text>
+                </View>
+                <Ionicons name="arrow-forward" size={22} color="#fff" />
+              </Pressable>
+            )}
           </ScrollView>
         )}
       </View>
@@ -275,5 +305,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
   },
   addSetPressed: { opacity: 0.7 },
+  next: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 60,
+    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    backgroundColor: colors.success,
+  },
+  nextLabels: { flex: 1 },
+  nextText: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  nextName: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600', marginTop: 2 },
   addSetText: { color: colors.accent, fontSize: 16, fontWeight: '700' },
 });
