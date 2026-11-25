@@ -7,13 +7,13 @@ namespace HabitsTracker.Api.Endpoints;
 public static class HistoryEndpoints
 {
     public record SessionSummary(
-        int Id, int? WorkoutId, string WorkoutName, DateTime StartedAt, DateTime FinishedAt,
+        int Id, int? WorkoutId, string WorkoutName, DateTime StartedAt, DateTime FinishedAt, double DurationSeconds,
         int ExerciseCount, int SetCount, int CompletedSetCount, double Volume);
 
     public record SessionSetDto(int Id, int Reps, double Weight, bool IsCompleted);
     public record SessionExerciseDto(int Id, string Name, List<SessionSetDto> Sets);
     public record SessionDetail(
-        int Id, int? WorkoutId, string WorkoutName, DateTime StartedAt, DateTime FinishedAt,
+        int Id, int? WorkoutId, string WorkoutName, DateTime StartedAt, DateTime FinishedAt, double DurationSeconds,
         List<SessionExerciseDto> Exercises);
 
     public static void MapHistoryEndpoints(this IEndpointRouteBuilder app)
@@ -26,7 +26,7 @@ public static class HistoryEndpoints
                 .Where(s => workoutId == null || s.WorkoutId == workoutId)
                 .OrderByDescending(s => s.FinishedAt)
                 .Select(s => new SessionSummary(
-                    s.Id, s.WorkoutId, s.WorkoutName, s.StartedAt, s.FinishedAt,
+                    s.Id, s.WorkoutId, s.WorkoutName, s.StartedAt, s.FinishedAt, s.DurationSeconds,
                     s.Exercises.Count,
                     s.Exercises.SelectMany(x => x.Sets).Count(),
                     s.Exercises.SelectMany(x => x.Sets).Count(set => set.IsCompleted),
@@ -38,7 +38,7 @@ public static class HistoryEndpoints
             var session = await db.Sessions
                 .Where(s => s.Id == id)
                 .Select(s => new SessionDetail(
-                    s.Id, s.WorkoutId, s.WorkoutName, s.StartedAt, s.FinishedAt,
+                    s.Id, s.WorkoutId, s.WorkoutName, s.StartedAt, s.FinishedAt, s.DurationSeconds,
                     s.Exercises
                         .OrderBy(x => x.SortOrder)
                         .Select(x => new SessionExerciseDto(

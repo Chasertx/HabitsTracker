@@ -7,6 +7,10 @@ public class Workout
     public DateTime CreatedAt { get; set; }
     /// <summary>When the in-progress session began; null when the workout isn't running.</summary>
     public DateTime? ActiveSessionStartedAt { get; set; }
+    /// <summary>When the running session was paused; null while it's running (or not started).</summary>
+    public DateTime? ActiveSessionPausedAt { get; set; }
+    /// <summary>Total seconds the running session has spent paused, not counting a pause in progress.</summary>
+    public double ActiveSessionPausedSeconds { get; set; }
     public List<Exercise> Exercises { get; set; } = [];
 }
 

@@ -44,13 +44,14 @@ export default function SessionScreen() {
   const sets = session.exercises.flatMap((x) => x.sets);
   const done = sets.filter((s) => s.isCompleted);
   const volume = done.reduce((sum, s) => sum + s.reps * s.weight, 0);
-  const duration = formatDuration(new Date(session.finishedAt).getTime() - new Date(session.startedAt).getTime());
+  const duration = formatDuration(session.durationSeconds * 1000);
 
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ title: session.workoutName }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.when}>{formatDateTime(session.startedAt)}</Text>
+        <Text style={styles.when}>Started {formatDateTime(session.startedAt)}</Text>
+        <Text style={styles.when}>Finished {formatDateTime(session.finishedAt)}</Text>
         <View style={styles.stats}>
           <Stat label="Duration" value={duration} />
           <Stat label="Sets done" value={`${done.length}/${sets.length}`} />

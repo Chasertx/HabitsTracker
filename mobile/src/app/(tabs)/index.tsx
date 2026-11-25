@@ -11,7 +11,7 @@ import {
 import { ScrollView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { api, type ListItem } from '../../api';
-import { DraftInput, useDraft } from '../../components/Composer';
+import AddButton from '../../components/Composer';
 import DraggableList from '../../components/DraggableList';
 import { EmptyState, ErrorBanner } from '../../components/Feedback';
 import ItemRow from '../../components/ItemRow';
@@ -86,8 +86,6 @@ export default function RoutineScreen() {
     }
   }, []);
 
-  const draft = useDraft(add);
-
   // Toggle, delete and reorder update the UI immediately, then roll back if the request fails.
   const toggle = useCallback(async (item: ListItem) => {
     const next = !item.isCompleted;
@@ -159,9 +157,8 @@ export default function RoutineScreen() {
           day: 'numeric',
         })}
         title="Routine"
-      >
-        <DraftInput draft={draft} placeholder="Add an item…" maxLength={200} />
-      </ScreenHeader>
+        actions={<AddButton label="Add item" placeholder="Item name…" onSubmit={add} maxLength={200} />}
+      />
 
       <View style={styles.body}>
         <ErrorBanner message={error} onDismiss={() => setError(null)} />

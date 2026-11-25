@@ -12,6 +12,8 @@ public class WorkoutSession
     public required string WorkoutName { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime FinishedAt { get; set; }
+    /// <summary>Time spent working out: start to finish, minus any time paused.</summary>
+    public double DurationSeconds { get; set; }
     public List<SessionExercise> Exercises { get; set; } = [];
 }
 

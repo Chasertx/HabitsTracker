@@ -7,10 +7,17 @@ namespace HabitsTracker.Api.Endpoints;
 public static class WorkoutEndpoints
 {
     public record NameRequest(string? Name);
-    public record WorkoutSummary(int Id, string Name, int ExerciseCount, DateTime CreatedAt, DateTime? ActiveSessionStartedAt);
+    public record WorkoutSummary(
+        int Id, string Name, int ExerciseCount, int SetCount, DateTime CreatedAt, DateTime? ActiveSessionStartedAt,
+        DateTime? ActiveSessionPausedAt);
     public record ExerciseSummary(int Id, int WorkoutId, string Name, int SortOrder, int SetCount, int CompletedSetCount);
+    /// <summary>
+    /// ActiveSessionPausedSeconds is the paused time so far, not counting a pause in progress
+    /// (ActiveSessionPausedAt); elapsed = (pausedAt or now) - startedAt - pausedSeconds.
+    /// </summary>
     public record WorkoutDetail(
-        int Id, string Name, DateTime CreatedAt, DateTime? ActiveSessionStartedAt, List<ExerciseSummary> Exercises);
+        int Id, string Name, DateTime CreatedAt, DateTime? ActiveSessionStartedAt, DateTime? ActiveSessionPausedAt,
+        double ActiveSessionPausedSeconds, List<ExerciseSummary> Exercises);
 
     private const int MaxNameLength = 100;
 
@@ -21,7 +28,9 @@ public static class WorkoutEndpoints
         workouts.MapGet("/", async (AppDbContext db) =>
             await db.Workouts
                 .OrderBy(w => w.CreatedAt)
-                .Select(w => new WorkoutSummary(w.Id, w.Name, w.Exercises.Count, w.CreatedAt, w.ActiveSessionStartedAt))
+                .Select(w => new WorkoutSummary(
+                    w.Id, w.Name, w.Exercises.Count, w.Exercises.SelectMany(x => x.Sets).Count(), w.CreatedAt,
+                    w.ActiveSessionStartedAt, w.ActiveSessionPausedAt))
                 .ToListAsync());
 
         workouts.MapGet("/{id:int}", async (int id, AppDbContext db) =>
@@ -38,7 +47,7 @@ public static class WorkoutEndpoints
             db.Workouts.Add(workout);
             await db.SaveChangesAsync();
             return Results.Created($"/api/workouts/{workout.Id}",
-                new WorkoutSummary(workout.Id, workout.Name, 0, workout.CreatedAt, null));
+                new WorkoutSummary(workout.Id, workout.Name, 0, 0, workout.CreatedAt, null, null));
         });
 
         workouts.MapPatch("/{id:int}", async (int id, NameRequest request, AppDbContext db) =>
@@ -98,10 +107,38 @@ public static class WorkoutEndpoints
 
             if (workout.ActiveSessionStartedAt is null)
             {
+                var hasSets = await db.Sets.AnyAsync(s => db.Exercises.Any(x => x.Id == s.ExerciseId && x.WorkoutId == id));
+                if (!hasSets) return Results.Conflict(new { error = "Add an exercise with at least one set first." });
+
                 await ClearCompletedSets(db, id);
                 workout.ActiveSessionStartedAt = DateTime.UtcNow;
+                ResetPause(workout);
                 await db.SaveChangesAsync();
             }
+            return Results.Ok(await LoadDetail(db, id));
+        });
+
+        // Stops the clock on the running session. Pausing a paused session is a no-op.
+        workouts.MapPost("/{id:int}/pause", async (int id, AppDbContext db) =>
+        {
+            var workout = await db.Workouts.FindAsync(id);
+            if (workout is null) return Results.NotFound();
+            if (workout.ActiveSessionStartedAt is null)
+                return Results.Conflict(new { error = "This workout hasn't been started." });
+
+            workout.ActiveSessionPausedAt ??= DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            return Results.Ok(await LoadDetail(db, id));
+        });
+
+        // Restarts the clock after a pause.
+        workouts.MapPost("/{id:int}/resume", async (int id, AppDbContext db) =>
+        {
+            var workout = await db.Workouts.FindAsync(id);
+            if (workout is null) return Results.NotFound();
+
+            EndPause(workout, DateTime.UtcNow);
+            await db.SaveChangesAsync();
             return Results.Ok(await LoadDetail(db, id));
         });
 
@@ -112,15 +149,45 @@ public static class WorkoutEndpoints
                 .Include(w => w.Exercises).ThenInclude(x => x.Sets)
                 .FirstOrDefaultAsync(w => w.Id == id);
             if (workout is null) return Results.NotFound();
-            if (workout.ActiveSessionStartedAt is not DateTime startedAt)
+            if (workout.ActiveSessionStartedAt is null)
                 return Results.Conflict(new { error = "This workout hasn't been started." });
+
+            var session = FinishSession(db, workout);
+            await db.SaveChangesAsync();
+            return Results.Ok(new { sessionId = session.Id });
+        });
+
+        // Abandons the running session without logging it.
+        workouts.MapPost("/{id:int}/cancel", async (int id, AppDbContext db) =>
+        {
+            var workout = await db.Workouts.FindAsync(id);
+            if (workout is null) return Results.NotFound();
+
+            await ClearCompletedSets(db, id);
+            workout.ActiveSessionStartedAt = null;
+            ResetPause(workout);
+            await db.SaveChangesAsync();
+            return Results.Ok(await LoadDetail(db, id));
+        });
+    }
+
+    /// <summary>
+    /// Logs the running session of a workout (loaded with its exercises and sets) to history
+    /// and resets the workout. The caller saves changes.
+    /// </summary>
+    internal static WorkoutSession FinishSession(AppDbContext db, Workout workout)
+    {
+            var now = DateTime.UtcNow;
+            var startedAt = workout.ActiveSessionStartedAt!.Value;
+            EndPause(workout, now);
 
             var session = new WorkoutSession
             {
                 WorkoutId = workout.Id,
                 WorkoutName = workout.Name,
                 StartedAt = startedAt,
-                FinishedAt = DateTime.UtcNow,
+                FinishedAt = now,
+                DurationSeconds = Math.Max(0, (now - startedAt).TotalSeconds - workout.ActiveSessionPausedSeconds),
                 Exercises = workout.Exercises
                     .OrderBy(x => x.SortOrder).ThenBy(x => x.Id)
                     .Select((x, i) => new SessionExercise
@@ -143,29 +210,29 @@ public static class WorkoutEndpoints
             db.Sessions.Add(session);
 
             workout.ActiveSessionStartedAt = null;
+            ResetPause(workout);
             foreach (var set in workout.Exercises.SelectMany(x => x.Sets)) set.IsCompleted = false;
+            return session;
+    }
 
-            await db.SaveChangesAsync();
-            return Results.Ok(new { sessionId = session.Id });
-        });
+    private static void EndPause(Workout workout, DateTime now)
+    {
+        if (workout.ActiveSessionPausedAt is not DateTime pausedAt) return;
+        workout.ActiveSessionPausedSeconds += Math.Max(0, (now - pausedAt).TotalSeconds);
+        workout.ActiveSessionPausedAt = null;
+    }
 
-        // Abandons the running session without logging it.
-        workouts.MapPost("/{id:int}/cancel", async (int id, AppDbContext db) =>
-        {
-            var workout = await db.Workouts.FindAsync(id);
-            if (workout is null) return Results.NotFound();
-
-            await ClearCompletedSets(db, id);
-            workout.ActiveSessionStartedAt = null;
-            await db.SaveChangesAsync();
-            return Results.Ok(await LoadDetail(db, id));
-        });
+    private static void ResetPause(Workout workout)
+    {
+        workout.ActiveSessionPausedAt = null;
+        workout.ActiveSessionPausedSeconds = 0;
     }
 
     private static Task<WorkoutDetail?> LoadDetail(AppDbContext db, int id) =>
         db.Workouts
             .Where(w => w.Id == id)
-            .Select(w => new WorkoutDetail(w.Id, w.Name, w.CreatedAt, w.ActiveSessionStartedAt,
+            .Select(w => new WorkoutDetail(w.Id, w.Name, w.CreatedAt, w.ActiveSessionStartedAt, w.ActiveSessionPausedAt,
+                w.ActiveSessionPausedSeconds,
                 w.Exercises
                     .OrderBy(x => x.SortOrder).ThenBy(x => x.Id)
                     .Select(x => new ExerciseSummary(

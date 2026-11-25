@@ -7,6 +7,9 @@ namespace HabitsTracker.Api.Endpoints;
 public static class ExerciseEndpoints
 {
     public record SetRequest(int? Reps, double? Weight, bool? IsCompleted);
+    /// <summary>A set after an update; FinishedSessionId is set when that update completed the workout.</summary>
+    public record SetResult(
+        int Id, int ExerciseId, int Reps, double Weight, bool IsCompleted, int SortOrder, int? FinishedSessionId);
     public record ExerciseDetail(
         int Id, int WorkoutId, string WorkoutName, DateTime? WorkoutActiveSessionStartedAt, string Name,
         List<ExerciseSet> Sets);
@@ -81,7 +84,25 @@ public static class ExerciseEndpoints
             if (request.Weight is double weight) set.Weight = weight;
             if (request.IsCompleted is bool done) set.IsCompleted = done;
             await db.SaveChangesAsync();
-            return Results.Ok(set);
+
+            // Checking off the last set of a running workout finishes it and logs it to history.
+            int? finishedSessionId = null;
+            if (request.IsCompleted == true)
+            {
+                var workout = await db.Workouts
+                    .Include(w => w.Exercises).ThenInclude(x => x.Sets)
+                    .FirstAsync(w => w.Exercises.Any(x => x.Id == set.ExerciseId));
+                if (workout.ActiveSessionStartedAt is not null
+                    && workout.Exercises.SelectMany(x => x.Sets).All(s => s.IsCompleted))
+                {
+                    var session = WorkoutEndpoints.FinishSession(db, workout);
+                    await db.SaveChangesAsync();
+                    finishedSessionId = session.Id;
+                }
+            }
+
+            return Results.Ok(new SetResult(
+                set.Id, set.ExerciseId, set.Reps, set.Weight, set.IsCompleted, set.SortOrder, finishedSessionId));
         });
 
         sets.MapDelete("/{id:int}", async (int id, AppDbContext db) =>

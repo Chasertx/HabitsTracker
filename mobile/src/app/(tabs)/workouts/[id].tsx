@@ -4,9 +4,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { api, type Exercise, type WorkoutDetail } from '../../../api';
-import Composer from '../../../components/Composer';
+import AddButton from '../../../components/Composer';
 import { EmptyState, ErrorBanner } from '../../../components/Feedback';
-import SessionBar from '../../../components/SessionBar';
+import SessionBar, { type SessionClock, WorkoutTimer } from '../../../components/SessionBar';
 import SimpleRow from '../../../components/SimpleRow';
 import { formatDuration } from '../../../format';
 import { colors, radius } from '../../../theme';
@@ -18,7 +18,7 @@ export default function WorkoutScreen() {
   const workoutId = Number(params.id);
   const [name, setName] = useState(params.name ?? '');
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [clock, setClock] = useState<SessionClock>({ startedAt: null, pausedAt: null, pausedSeconds: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -28,7 +28,11 @@ export default function WorkoutScreen() {
   const apply = useCallback((workout: WorkoutDetail) => {
     setName(workout.name);
     setExercises(workout.exercises);
-    setStartedAt(workout.activeSessionStartedAt);
+    setClock({
+      startedAt: workout.activeSessionStartedAt,
+      pausedAt: workout.activeSessionPausedAt,
+      pausedSeconds: workout.activeSessionPausedSeconds,
+    });
   }, []);
 
   const load = useCallback(
@@ -108,31 +112,45 @@ export default function WorkoutScreen() {
 
   const finish = () =>
     runSessionAction(async () => {
-      const began = startedAt;
       const { sessionId } = await api.workouts.finish(workoutId);
-      setSaved({ sessionId, duration: began ? formatDuration(Date.now() - new Date(began).getTime()) : '' });
+      const session = await api.history.get(sessionId).catch(() => null);
+      setSaved({ sessionId, duration: session ? formatDuration(session.durationSeconds * 1000) : '' });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       await load();
     }, "Couldn't finish the workout.");
+
+  const pause = () =>
+    runSessionAction(async () => apply(await api.workouts.pause(workoutId)), "Couldn't pause the workout.");
+
+  const resume = () =>
+    runSessionAction(async () => apply(await api.workouts.resume(workoutId)), "Couldn't resume the workout.");
 
   const cancel = () =>
     runSessionAction(async () => apply(await api.workouts.cancel(workoutId)), "Couldn't cancel the workout.");
 
   const totalSets = exercises.reduce((n, x) => n + x.setCount, 0);
   const completedSets = exercises.reduce((n, x) => n + x.completedSetCount, 0);
-  const active = startedAt !== null;
+  const active = clock.startedAt !== null;
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: name }} />
+      <Stack.Screen
+        options={{
+          title: name,
+          headerRight: () => <AddButton label="Add exercise" placeholder="Exercise name…" onSubmit={add} compact />,
+        }}
+      />
 
       <View style={styles.header}>
+        <WorkoutTimer clock={clock} />
         <SessionBar
-          startedAt={startedAt}
+          clock={clock}
           completedSets={completedSets}
           totalSets={totalSets}
           busy={busy}
           onStart={start}
+          onPause={pause}
+          onResume={resume}
           onFinish={finish}
           onCancel={cancel}
         />
@@ -143,13 +161,10 @@ export default function WorkoutScreen() {
             accessibilityRole="button"
           >
             <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-            <Text style={styles.savedText}>
-              Workout saved to history{saved.duration ? ` · ${saved.duration}` : ''}
-            </Text>
+            <Text style={styles.savedText}>Workout saved to history{saved.duration ? ` · ${saved.duration}` : ''}</Text>
             <Text style={styles.savedLink}>View</Text>
           </Pressable>
         )}
-        <Composer placeholder="Add an exercise…" onSubmit={add} />
       </View>
 
       <View style={styles.body}>
@@ -171,7 +186,7 @@ export default function WorkoutScreen() {
             }
           >
             {exercises.length === 0 ? (
-              <EmptyState title="No exercises yet" body="Add the exercises in this workout above." />
+              <EmptyState title="No exercises yet" body="Tap + to add the exercises in this workout." />
             ) : (
               exercises.map((x, index) => {
                 const done = isExerciseDone(x);

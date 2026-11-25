@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, V
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { api, type WorkoutSummary } from '../../../api';
-import { DraftInput, useDraft } from '../../../components/Composer';
+import AddButton from '../../../components/Composer';
 import { EmptyState, ErrorBanner } from '../../../components/Feedback';
 import ScreenHeader from '../../../components/ScreenHeader';
 import SimpleRow from '../../../components/SimpleRow';
@@ -47,7 +47,6 @@ export default function WorkoutsScreen() {
       throw e;
     }
   }, []);
-  const draft = useDraft(create);
 
   const remove = useCallback(
     async (workout: WorkoutSummary) => {
@@ -83,11 +82,10 @@ export default function WorkoutsScreen() {
             >
               <Ionicons name="time-outline" size={26} color={colors.text} />
             </Pressable>
+            <AddButton label="New workout" placeholder="Workout name…" onSubmit={create} />
           </>
         }
-      >
-        <DraftInput draft={draft} placeholder="New workout name…" />
-      </ScreenHeader>
+      />
 
       <View style={styles.body}>
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
@@ -108,7 +106,7 @@ export default function WorkoutsScreen() {
             }
           >
             {workouts.length === 0 ? (
-              <EmptyState title="No workouts yet" body="Name a workout above to create it." />
+              <EmptyState title="No workouts yet" body="Tap + to create one." />
             ) : (
               workouts.map((w) => {
                 const active = w.activeSessionStartedAt !== null;

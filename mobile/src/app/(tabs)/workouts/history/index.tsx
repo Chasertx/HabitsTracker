@@ -52,10 +52,7 @@ export default function HistoryScreen() {
     [load],
   );
 
-  const totalMs = sessions.reduce(
-    (sum, s) => sum + (new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime()),
-    0,
-  );
+  const totalMs = sessions.reduce((sum, s) => sum + s.durationSeconds * 1000, 0);
 
   return (
     <View style={styles.root}>
@@ -87,13 +84,10 @@ export default function HistoryScreen() {
             }
           >
             {sessions.length === 0 ? (
-              <EmptyState
-                title="No workouts logged yet"
-                body="Start a workout, then tap Finish to save it here."
-              />
+              <EmptyState title="No workouts logged yet" body="Start a workout, then tap Finish to save it here." />
             ) : (
               sessions.map((s) => {
-                const duration = formatDuration(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime());
+                const duration = formatDuration(s.durationSeconds * 1000);
                 return (
                   <SimpleRow
                     key={s.id}
@@ -105,9 +99,7 @@ export default function HistoryScreen() {
                       </View>
                     }
                     trailing={<Ionicons name="chevron-forward" size={18} color={colors.textFaint} />}
-                    onPress={() =>
-                      router.push({ pathname: '/workouts/history/[id]', params: { id: String(s.id) } })
-                    }
+                    onPress={() => router.push({ pathname: '/workouts/history/[id]', params: { id: String(s.id) } })}
                     onDelete={() => remove(s)}
                     deleteLabel={`Delete ${s.workoutName} from history`}
                   />

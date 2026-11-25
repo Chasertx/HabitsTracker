@@ -199,6 +199,12 @@ namespace HabitsTracker.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("ActiveSessionPausedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("ActiveSessionPausedSeconds")
+                        .HasColumnType("double precision");
+
                     b.Property<DateTime?>("ActiveSessionStartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -222,6 +228,9 @@ namespace HabitsTracker.Api.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<double>("DurationSeconds")
+                        .HasColumnType("double precision");
 
                     b.Property<DateTime>("FinishedAt")
                         .HasColumnType("timestamp with time zone");

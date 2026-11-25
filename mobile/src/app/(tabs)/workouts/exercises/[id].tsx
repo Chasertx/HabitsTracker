@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { api, type ExerciseSet } from '../../../../api';
 import { EmptyState, ErrorBanner } from '../../../../components/Feedback';
 import SetRow, { setColumns } from '../../../../components/SetRow';
@@ -37,6 +37,7 @@ export default function ExerciseScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [finishedSessionId, setFinishedSessionId] = useState<number | null>(null);
 
   const load = useCallback(
     () =>
@@ -82,7 +83,13 @@ export default function ExerciseScreen() {
     async (set: ExerciseSet, values: { reps?: number; weight?: number; isCompleted?: boolean }) => {
       setSets((prev) => prev.map((s) => (s.id === set.id ? { ...s, ...values } : s)));
       try {
-        await api.exercises.updateSet(set.id, values);
+        const result = await api.exercises.updateSet(set.id, values);
+        if (result.finishedSessionId !== null) {
+          // That was the workout's last set: the server logged it to history and reset the sets.
+          setFinishedSessionId(result.finishedSessionId);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          load();
+        }
       } catch {
         setError("Couldn't save set.");
         load();
@@ -128,7 +135,17 @@ export default function ExerciseScreen() {
       <Stack.Screen options={{ title: name }} />
 
       <Text style={styles.summary}>{summary}</Text>
-      {allDone ? (
+      {finishedSessionId !== null ? (
+        <Pressable
+          onPress={() => router.push({ pathname: '/workouts/history/[id]', params: { id: String(finishedSessionId) } })}
+          style={[styles.notice, styles.noticeDone]}
+          accessibilityRole="button"
+        >
+          <Ionicons name="trophy" size={18} color={colors.success} />
+          <Text style={[styles.noticeText, { flex: 1 }]}>Workout complete · saved to history</Text>
+          <Text style={[styles.noticeText, { color: colors.success, fontWeight: '700' }]}>View</Text>
+        </Pressable>
+      ) : allDone ? (
         <View style={[styles.notice, styles.noticeDone]}>
           <Ionicons name="checkmark-circle" size={18} color={colors.success} />
           <Text style={styles.noticeText}>Exercise complete</Text>
