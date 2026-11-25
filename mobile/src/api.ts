@@ -23,6 +23,8 @@ export type WorkoutSummary = {
   activeSessionStartedAt: string | null;
   /** Set while that session is paused. */
   activeSessionPausedAt: string | null;
+  /** When this workout was last finished, or null if never. */
+  lastDoneAt: string | null;
 };
 
 export type Exercise = {
@@ -32,8 +34,6 @@ export type Exercise = {
   sortOrder: number;
   setCount: number;
   completedSetCount: number;
-  /** When a finished session of this workout last included a completed set of this exercise. */
-  lastDoneAt: string | null;
 };
 
 export type ExerciseSet = {

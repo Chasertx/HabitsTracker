@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { api, type WorkoutSummary } from '../../../api';
 import AddButton from '../../../components/Composer';
 import { EmptyState, ErrorBanner } from '../../../components/Feedback';
+import { formatDaysSince } from '../../../format';
 import ScreenHeader from '../../../components/ScreenHeader';
 import SimpleRow from '../../../components/SimpleRow';
 import { colors, radius } from '../../../theme';
@@ -126,7 +127,19 @@ export default function WorkoutsScreen() {
                         />
                       </View>
                     }
-                    trailing={<Ionicons name="chevron-forward" size={18} color={colors.textFaint} />}
+                    trailing={
+                      <View
+                        style={styles.since}
+                        accessibilityLabel={
+                          w.lastDoneAt ? `Last done ${formatDaysSince(w.lastDoneAt)}` : 'Not done yet'
+                        }
+                      >
+                        <Text style={styles.sinceValue}>{w.lastDoneAt ? formatDaysSince(w.lastDoneAt) : '—'}</Text>
+                        <Text style={styles.sinceLabel}>
+                          {w.lastDoneAt && formatDaysSince(w.lastDoneAt) !== 'Today' ? 'ago' : 'last done'}
+                        </Text>
+                      </View>
+                    }
                     onPress={() => open(w)}
                     onDelete={() => remove(w)}
                     deleteLabel={`Delete ${w.name}`}
@@ -165,5 +178,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  since: { alignItems: 'flex-end', minWidth: 56 },
+  sinceValue: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  sinceLabel: { color: colors.textFaint, fontSize: 11, fontWeight: '600' },
   badgeActive: { backgroundColor: colors.success },
 });

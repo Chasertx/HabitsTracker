@@ -9,10 +9,8 @@ public static class WorkoutEndpoints
     public record NameRequest(string? Name);
     public record WorkoutSummary(
         int Id, string Name, int ExerciseCount, int SetCount, DateTime CreatedAt, DateTime? ActiveSessionStartedAt,
-        DateTime? ActiveSessionPausedAt);
-    /// <summary>LastDoneAt: when a finished session of this workout last had a completed set of this exercise (matched by name).</summary>
-    public record ExerciseSummary(
-        int Id, int WorkoutId, string Name, int SortOrder, int SetCount, int CompletedSetCount, DateTime? LastDoneAt = null);
+        DateTime? ActiveSessionPausedAt, DateTime? LastDoneAt);
+    public record ExerciseSummary(int Id, int WorkoutId, string Name, int SortOrder, int SetCount, int CompletedSetCount);
     public record ReorderRequest(int[] Ids);
     /// <summary>
     /// ActiveSessionPausedSeconds is the paused time so far, not counting a pause in progress
@@ -33,7 +31,8 @@ public static class WorkoutEndpoints
                 .OrderBy(w => w.CreatedAt)
                 .Select(w => new WorkoutSummary(
                     w.Id, w.Name, w.Exercises.Count, w.Exercises.SelectMany(x => x.Sets).Count(), w.CreatedAt,
-                    w.ActiveSessionStartedAt, w.ActiveSessionPausedAt))
+                    w.ActiveSessionStartedAt, w.ActiveSessionPausedAt,
+                    db.Sessions.Where(s => s.WorkoutId == w.Id).Max(s => (DateTime?)s.FinishedAt)))
                 .ToListAsync());
 
         workouts.MapGet("/{id:int}", async (int id, AppDbContext db) =>
@@ -50,7 +49,7 @@ public static class WorkoutEndpoints
             db.Workouts.Add(workout);
             await db.SaveChangesAsync();
             return Results.Created($"/api/workouts/{workout.Id}",
-                new WorkoutSummary(workout.Id, workout.Name, 0, 0, workout.CreatedAt, null, null));
+                new WorkoutSummary(workout.Id, workout.Name, 0, 0, workout.CreatedAt, null, null, null));
         });
 
         workouts.MapPatch("/{id:int}", async (int id, NameRequest request, AppDbContext db) =>
@@ -245,30 +244,7 @@ public static class WorkoutEndpoints
         workout.ActiveSessionPausedSeconds = 0;
     }
 
-    private static async Task<WorkoutDetail?> LoadDetail(AppDbContext db, int id)
-    {
-        var detail = await LoadDetailCore(db, id);
-        if (detail is null) return null;
-
-        var done = await db.Sessions
-            .Where(s => s.WorkoutId == id)
-            .SelectMany(s => s.Exercises
-                .Where(x => x.Sets.Any(set => set.IsCompleted))
-                .Select(x => new { x.Name, s.FinishedAt }))
-            .ToListAsync();
-        var lastDone = done
-            .GroupBy(x => x.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Max(x => x.FinishedAt), StringComparer.OrdinalIgnoreCase);
-
-        return detail with
-        {
-            Exercises = detail.Exercises
-                .Select(x => x with { LastDoneAt = lastDone.TryGetValue(x.Name.Trim(), out var at) ? at : null })
-                .ToList(),
-        };
-    }
-
-    private static Task<WorkoutDetail?> LoadDetailCore(AppDbContext db, int id) =>
+    private static Task<WorkoutDetail?> LoadDetail(AppDbContext db, int id) =>
         db.Workouts
             .Where(w => w.Id == id)
             .Select(w => new WorkoutDetail(w.Id, w.Name, w.CreatedAt, w.ActiveSessionStartedAt, w.ActiveSessionPausedAt,
@@ -276,7 +252,7 @@ public static class WorkoutEndpoints
                 w.Exercises
                     .OrderBy(x => x.SortOrder).ThenBy(x => x.Id)
                     .Select(x => new ExerciseSummary(
-                        x.Id, x.WorkoutId, x.Name, x.SortOrder, x.Sets.Count, x.Sets.Count(s => s.IsCompleted), null))
+                        x.Id, x.WorkoutId, x.Name, x.SortOrder, x.Sets.Count, x.Sets.Count(s => s.IsCompleted)))
                     .ToList()))
             .FirstOrDefaultAsync();
 

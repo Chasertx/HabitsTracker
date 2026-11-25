@@ -10,7 +10,7 @@ import { EmptyState, ErrorBanner } from '../../../components/Feedback';
 import SessionBar, { type SessionClock, WorkoutTimer } from '../../../components/SessionBar';
 import DraggableList from '../../../components/DraggableList';
 import SimpleRow from '../../../components/SimpleRow';
-import { formatDaysSince, formatDuration } from '../../../format';
+import { formatDuration } from '../../../format';
 import { colors, radius } from '../../../theme';
 
 const isExerciseDone = (x: Exercise) => x.setCount > 0 && x.completedSetCount === x.setCount;
@@ -241,19 +241,7 @@ export default function WorkoutScreen() {
                           params: { id: String(x.id), name: x.name },
                         })
                       }
-                      trailing={
-                        <View
-                          style={styles.since}
-                          accessibilityLabel={
-                            x.lastDoneAt ? `Last done ${formatDaysSince(x.lastDoneAt)} ago` : 'Not done yet'
-                          }
-                        >
-                          <Text style={styles.sinceValue}>{x.lastDoneAt ? formatDaysSince(x.lastDoneAt) : '—'}</Text>
-                          <Text style={styles.sinceLabel}>
-                            {x.lastDoneAt && formatDaysSince(x.lastDoneAt) !== 'Today' ? 'ago' : 'last done'}
-                          </Text>
-                        </View>
-                      }
+                      trailing={<Ionicons name="chevron-forward" size={18} color={colors.textFaint} />}
                       leading={
                         done ? (
                           <View style={[styles.number, styles.numberDone]} accessibilityLabel="Exercise complete">
@@ -304,9 +292,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  since: { alignItems: 'flex-end', minWidth: 56 },
-  sinceValue: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  sinceLabel: { color: colors.textFaint, fontSize: 11, fontWeight: '600' },
   hint: { color: colors.textFaint, fontSize: 13, textAlign: 'center', marginTop: 12 },
   numberDone: { backgroundColor: colors.success },
   numberText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
