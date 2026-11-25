@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, V
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { api, type WorkoutSummary } from '../../../api';
-import { AddButton, DraftInput, useDraft } from '../../../components/Composer';
+import { DraftInput, useDraft } from '../../../components/Composer';
 import { EmptyState, ErrorBanner } from '../../../components/Feedback';
 import ScreenHeader from '../../../components/ScreenHeader';
 import SimpleRow from '../../../components/SimpleRow';
@@ -63,7 +63,10 @@ export default function WorkoutsScreen() {
   );
 
   const open = (workout: WorkoutSummary) =>
-    router.push({ pathname: '/workouts/[id]', params: { id: String(workout.id), name: workout.name } });
+    router.push({
+      pathname: '/workouts/[id]',
+      params: { id: String(workout.id), name: workout.name },
+    });
 
   return (
     <View style={styles.root}>
@@ -80,7 +83,6 @@ export default function WorkoutsScreen() {
             >
               <Ionicons name="time-outline" size={26} color={colors.text} />
             </Pressable>
-            <AddButton draft={draft} label="Create workout" />
           </>
         }
       >
@@ -119,7 +121,11 @@ export default function WorkoutsScreen() {
                     highlight={active}
                     leading={
                       <View style={[styles.badge, active && styles.badgeActive]}>
-                        <Ionicons name={active ? 'play' : 'barbell'} size={18} color={active ? '#fff' : colors.accent} />
+                        <Ionicons
+                          name={active ? 'play' : 'barbell'}
+                          size={18}
+                          color={active ? '#fff' : colors.accent}
+                        />
                       </View>
                     }
                     trailing={<Ionicons name="chevron-forward" size={18} color={colors.textFaint} />}

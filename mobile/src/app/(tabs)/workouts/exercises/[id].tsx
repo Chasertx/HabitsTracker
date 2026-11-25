@@ -124,11 +124,7 @@ export default function ExerciseScreen() {
     .join(' · ');
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior="padding"
-      keyboardVerticalOffset={insets.top + HEADER_HEIGHT}
-    >
+    <KeyboardAvoidingView style={styles.root} behavior="padding" keyboardVerticalOffset={insets.top + HEADER_HEIGHT}>
       <Stack.Screen options={{ title: name }} />
 
       <Text style={styles.summary}>{summary}</Text>
@@ -171,7 +167,6 @@ export default function ExerciseScreen() {
                   <Text style={[styles.columnLabel, setColumns.set]}>SET</Text>
                   <Text style={[styles.columnLabel, setColumns.value]}>REPS</Text>
                   <Text style={[styles.columnLabel, setColumns.value]}>WEIGHT</Text>
-                  <View style={setColumns.action} />
                 </View>
                 {sets.map((set, index) => (
                   <SetRow
@@ -218,7 +213,12 @@ const styles = StyleSheet.create({
   },
   noticeDone: { backgroundColor: colors.successSoft },
   noticeText: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
-  liveDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.success },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.success,
+  },
   summary: {
     color: colors.textMuted,
     fontSize: 14,

@@ -11,7 +11,7 @@ import {
 import { ScrollView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { api, type ListItem } from '../../api';
-import { AddButton, DraftInput, useDraft } from '../../components/Composer';
+import { DraftInput, useDraft } from '../../components/Composer';
 import DraggableList from '../../components/DraggableList';
 import { EmptyState, ErrorBanner } from '../../components/Feedback';
 import ItemRow from '../../components/ItemRow';
@@ -151,9 +151,12 @@ export default function RoutineScreen() {
   return (
     <View style={styles.root}>
       <ScreenHeader
-        eyebrow={today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+        eyebrow={today.toLocaleDateString(undefined, {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        })}
         title="Routine"
-        actions={<AddButton draft={draft} label="Add item" />}
       >
         <DraftInput draft={draft} placeholder="Add an item…" maxLength={200} />
       </ScreenHeader>
@@ -218,7 +221,12 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: 16 },
   loader: { flex: 1 },
   listContent: { paddingTop: 4, paddingBottom: 16, flexGrow: 1 },
-  hint: { color: colors.textFaint, fontSize: 12, textAlign: 'center', marginTop: 16 },
+  hint: {
+    color: colors.textFaint,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 16,
+  },
   footer: {
     paddingHorizontal: 22,
     paddingTop: 14,
@@ -236,5 +244,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     overflow: 'hidden',
   },
-  progressFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.accent },
+  progressFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+  },
 });

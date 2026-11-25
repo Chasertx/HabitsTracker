@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ExerciseSet } from '../api';
 import { formatWeight } from '../format';
 import { colors, radius } from '../theme';
-import DeleteButton from './DeleteButton';
+import SwipeToDelete from './SwipeToDelete';
 
 type Props = {
   set: ExerciseSet;
@@ -79,52 +79,52 @@ function SetRow({ set, index, onChange, onDelete, onToggle }: Props) {
   };
 
   return (
-    <View style={[styles.row, set.isCompleted && styles.rowDone]}>
-      <Pressable
-        onPress={() => onToggle(set)}
-        hitSlop={6}
-        style={({ pressed }) => [styles.badge, set.isCompleted && styles.badgeDone, pressed && styles.pressed]}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: set.isCompleted }}
-        accessibilityLabel={`Set ${index + 1} done`}
-      >
-        {set.isCompleted ? (
-          <Ionicons name="checkmark" size={22} color="#fff" />
-        ) : (
-          <Text style={styles.badgeText}>{index + 1}</Text>
-        )}
-      </Pressable>
-      <TextInput
-        value={reps}
-        onChangeText={changeReps}
-        onEndEditing={commitReps}
-        keyboardType="number-pad"
-        selectTextOnFocus
-        maxLength={4}
-        style={[styles.input, set.isCompleted && styles.inputDone]}
-        accessibilityLabel={`Set ${index + 1} reps`}
-      />
-      <TextInput
-        value={weight}
-        onChangeText={changeWeight}
-        onEndEditing={commitWeight}
-        keyboardType="decimal-pad"
-        selectTextOnFocus
-        maxLength={7}
-        style={[styles.input, set.isCompleted && styles.inputDone]}
-        accessibilityLabel={`Set ${index + 1} weight`}
-      />
-      <View style={setColumns.action}>
-        <DeleteButton
-          onConfirm={() => {
-            // Skip the unmount save: this set is about to stop existing.
-            pending.current.deleted = true;
-            onDelete(set);
-          }}
-          label={`Remove set ${index + 1}`}
+    <SwipeToDelete
+      onDelete={() => {
+        // Skip the unmount save: this set is about to stop existing.
+        pending.current.deleted = true;
+        onDelete(set);
+      }}
+      label={`Remove set ${index + 1}`}
+      style={styles.spacing}
+    >
+      <View style={[styles.row, set.isCompleted && styles.rowDone]}>
+        <Pressable
+          onPress={() => onToggle(set)}
+          hitSlop={6}
+          style={({ pressed }) => [styles.badge, set.isCompleted && styles.badgeDone, pressed && styles.pressed]}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: set.isCompleted }}
+          accessibilityLabel={`Set ${index + 1} done`}
+        >
+          {set.isCompleted ? (
+            <Ionicons name="checkmark" size={22} color="#fff" />
+          ) : (
+            <Text style={styles.badgeText}>{index + 1}</Text>
+          )}
+        </Pressable>
+        <TextInput
+          value={reps}
+          onChangeText={changeReps}
+          onEndEditing={commitReps}
+          keyboardType="number-pad"
+          selectTextOnFocus
+          maxLength={4}
+          style={[styles.input, set.isCompleted && styles.inputDone]}
+          accessibilityLabel={`Set ${index + 1} reps`}
+        />
+        <TextInput
+          value={weight}
+          onChangeText={changeWeight}
+          onEndEditing={commitWeight}
+          keyboardType="decimal-pad"
+          selectTextOnFocus
+          maxLength={7}
+          style={[styles.input, set.isCompleted && styles.inputDone]}
+          accessibilityLabel={`Set ${index + 1} weight`}
         />
       </View>
-    </View>
+    </SwipeToDelete>
   );
 }
 
@@ -134,17 +134,16 @@ export default memo(SetRow);
 export const setColumns = StyleSheet.create({
   set: { width: 40, alignItems: 'center' },
   value: { flex: 1 },
-  action: { width: 36 },
 });
 
 const styles = StyleSheet.create({
+  spacing: { marginBottom: 8 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    marginBottom: 8,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,

@@ -1,11 +1,8 @@
-import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { type GestureResponderEvent, Keyboard, StyleSheet, TextInput, type TextInputInstance } from 'react-native';
 import { colors, radius } from '../theme';
 
-/**
- * Text-entry state for adding things to a list. The input and the "+" button take the
- * same draft so they can be placed apart (e.g. "+" in a screen header).
- */
+/** Text-entry state for adding things to a list. */
 export function useDraft(onSubmit: (text: string) => Promise<void>) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,6 +28,25 @@ export function useDraft(onSubmit: (text: string) => Promise<void>) {
 
 export type Draft = ReturnType<typeof useDraft>;
 
+/** The add-item field that has focus, so a tap anywhere else can cancel it. */
+let focused: {
+  contains: (x: number, y: number) => boolean;
+  blur: () => void;
+} | null = null;
+
+/**
+ * Hook up at the app root (onTouchStart): a touch outside the focused add-item field
+ * closes the keyboard and throws the draft away.
+ */
+export function cancelDraftOnOutsideTouch(e: GestureResponderEvent) {
+  const { pageX, pageY } = e.nativeEvent;
+  if (focused && !focused.contains(pageX, pageY)) focused.blur();
+}
+
+/**
+ * Text field for adding things: type a name and press the keyboard's Done key to add it.
+ * Tapping anywhere else (or closing the keyboard) cancels and clears the draft.
+ */
 export function DraftInput({
   draft,
   placeholder,
@@ -40,37 +56,49 @@ export function DraftInput({
   placeholder: string;
   maxLength?: number;
 }) {
+  const ref = useRef<TextInputInstance>(null);
+  const rect = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const { setDraft } = draft;
+
+  const blur = useCallback(() => ref.current?.blur(), []);
+
+  // The Android back key hides the keyboard without blurring; treat that as a cancel too.
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidHide', blur);
+    return () => sub.remove();
+  }, [blur]);
+
+  const onFocus = () => {
+    ref.current?.measureInWindow((x, y, w, h) => (rect.current = { x, y, w, h }));
+    focused = {
+      contains: (px, py) => {
+        const r = rect.current;
+        return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+      },
+      blur,
+    };
+  };
+
+  const onBlur = () => {
+    if (focused?.blur === blur) focused = null;
+    setDraft('');
+  };
+
   return (
     <TextInput
+      ref={ref}
       value={draft.draft}
-      onChangeText={draft.setDraft}
+      onChangeText={setDraft}
       onSubmitEditing={draft.submit}
+      onFocus={onFocus}
+      onBlur={onBlur}
       placeholder={placeholder}
       placeholderTextColor={colors.textFaint}
       style={styles.input}
       returnKeyType="done"
-      submitBehavior="submit"
+      submitBehavior="blurAndSubmit"
       maxLength={maxLength}
     />
-  );
-}
-
-export function AddButton({ draft, label = 'Add' }: { draft: Draft; label?: string }) {
-  return (
-    <Pressable
-      onPress={draft.submit}
-      disabled={!draft.canAdd}
-      style={({ pressed }) => [
-        styles.addButton,
-        !draft.canAdd && styles.addButtonDisabled,
-        pressed && styles.addButtonPressed,
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: !draft.canAdd }}
-    >
-      <Text style={styles.addIcon}>+</Text>
-    </Pressable>
   );
 }
 
@@ -81,22 +109,13 @@ type Props = {
   maxLength?: number;
 };
 
-/** A text field with a "+" button beside it. */
+/** An add-item text field; Done adds, tapping elsewhere cancels. */
 export default function Composer({ placeholder, onSubmit, maxLength }: Props) {
   const draft = useDraft(onSubmit);
-  return (
-    <View style={styles.composer}>
-      <View style={styles.flex}>
-        <DraftInput draft={draft} placeholder={placeholder} maxLength={maxLength} />
-      </View>
-      <AddButton draft={draft} />
-    </View>
-  );
+  return <DraftInput draft={draft} placeholder={placeholder} maxLength={maxLength} />;
 }
 
 const styles = StyleSheet.create({
-  composer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  flex: { flex: 1 },
   input: {
     height: 52,
     paddingHorizontal: 18,
@@ -107,15 +126,4 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
   },
-  addButton: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonDisabled: { backgroundColor: colors.surfaceRaised },
-  addButtonPressed: { opacity: 0.8 },
-  addIcon: { color: '#fff', fontSize: 30, fontWeight: '400', lineHeight: 32 },
 });
