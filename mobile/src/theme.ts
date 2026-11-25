@@ -1,17 +1,27 @@
+// Soft slate dark theme: lighter than near-black, with layered surfaces and a violet accent.
 export const colors = {
-  background: '#0E0F13',
-  surface: '#17181F',
-  surfaceRaised: '#1F212A',
-  border: '#2A2C37',
-  text: '#F2F3F7',
-  textMuted: '#8A8D9B',
-  textFaint: '#5A5D6B',
-  accent: '#7C6CFF',
-  accentSoft: 'rgba(124, 108, 255, 0.16)',
-  danger: '#FF5D73',
-  dangerSoft: 'rgba(255, 93, 115, 0.14)',
-  success: '#2FBF71',
-  successSoft: 'rgba(47, 191, 113, 0.14)',
+  background: '#1A1D27',
+  surface: '#242836',
+  surfaceRaised: '#2E3343',
+  border: '#373C4F',
+  text: '#F4F5FA',
+  textMuted: '#A3A8BC',
+  textFaint: '#6E7489',
+  accent: '#8E80FF',
+  accentSoft: 'rgba(142, 128, 255, 0.18)',
+  danger: '#FF6B81',
+  dangerSoft: 'rgba(255, 107, 129, 0.16)',
+  success: '#34C77B',
+  successSoft: 'rgba(52, 199, 123, 0.16)',
 };
 
-export const radius = { sm: 10, md: 16, lg: 22, pill: 999 };
+export const radius = { sm: 12, md: 18, lg: 24, pill: 999 };
+
+/** Soft drop shadow for cards. */
+export const shadow = {
+  shadowColor: '#000',
+  shadowOpacity: 0.25,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 3,
+};

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ListItem } from '../api';
-import { colors, radius } from '../theme';
+import { colors, radius, shadow } from '../theme';
 import SwipeToDelete from './SwipeToDelete';
 
 type Props = {
@@ -44,16 +44,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
     overflow: 'hidden',
+    ...shadow,
   },
-  rowDone: { backgroundColor: colors.background },
+  rowDone: { backgroundColor: colors.surface, opacity: 0.6 },
   main: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     gap: 14,
   },

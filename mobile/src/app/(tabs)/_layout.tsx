@@ -19,13 +19,16 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
+          backgroundColor: colors.surface,
+          borderTopWidth: 0,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          elevation: 12,
           height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
-          paddingTop: 6,
+          paddingTop: 8,
           paddingBottom: insets.bottom + 6,
         },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
       }}
     >
       <Tabs.Screen

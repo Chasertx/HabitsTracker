@@ -37,12 +37,12 @@ const styles = StyleSheet.create({
   titles: { flex: 1, paddingLeft: 6 },
   eyebrow: {
     color: colors.accent,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.8,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
-  heading: { color: colors.text, fontSize: 30, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
+  heading: { color: colors.text, fontSize: 30, fontWeight: '800', marginTop: 2, letterSpacing: -0.8 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   below: { marginTop: 16 },
 });
