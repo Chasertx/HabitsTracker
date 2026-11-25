@@ -6,6 +6,7 @@ namespace HabitsTracker.Api.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<ListItem> Items => Set<ListItem>();
+    public DbSet<ItemCompletion> ItemCompletions => Set<ItemCompletion>();
     public DbSet<Workout> Workouts => Set<Workout>();
     public DbSet<Exercise> Exercises => Set<Exercise>();
     public DbSet<ExerciseSet> Sets => Set<ExerciseSet>();
@@ -20,6 +21,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(i => i.Title).HasMaxLength(200);
             e.HasIndex(i => i.SortOrder);
+        });
+
+        modelBuilder.Entity<ItemCompletion>(e =>
+        {
+            e.HasIndex(c => new { c.ItemId, c.Day }).IsUnique();
+            e.HasOne<ListItem>().WithMany().HasForeignKey(c => c.ItemId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Workout>(e =>

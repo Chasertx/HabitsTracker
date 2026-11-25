@@ -19,7 +19,9 @@ public static class ItemEndpoints
         items.MapGet("/", async (string? timeZone, AppDbContext db) =>
         {
             await DailyReset.RunAsync(db, timeZone);
-            return await db.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).ToListAsync();
+            var list = await db.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).ToListAsync();
+            await Streaks.FillAsync(db, list, Streaks.Today(timeZone));
+            return list;
         });
 
         items.MapPost("/", async (CreateItemRequest request, AppDbContext db) =>
@@ -35,7 +37,7 @@ public static class ItemEndpoints
             return Results.Created($"/api/items/{item.Id}", item);
         });
 
-        items.MapPatch("/{id:int}", async (int id, UpdateItemRequest request, AppDbContext db) =>
+        items.MapPatch("/{id:int}", async (int id, string? timeZone, UpdateItemRequest request, AppDbContext db) =>
         {
             var item = await db.Items.FindAsync(id);
             if (item is null) return Results.NotFound();
@@ -50,9 +52,11 @@ public static class ItemEndpoints
             {
                 item.IsCompleted = done;
                 item.CompletedAt = done ? DateTime.UtcNow : null;
+                await Streaks.RecordAsync(db, item.Id, Streaks.Today(timeZone), done);
             }
 
             await db.SaveChangesAsync();
+            await Streaks.FillAsync(db, [item], Streaks.Today(timeZone));
             return Results.Ok(item);
         });
 

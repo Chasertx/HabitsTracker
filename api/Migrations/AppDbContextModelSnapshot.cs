@@ -81,6 +81,28 @@ namespace HabitsTracker.Api.Migrations
                     b.ToTable("Sets", (string)null);
                 });
 
+            modelBuilder.Entity("HabitsTracker.Api.Models.ItemCompletion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId", "Day")
+                        .IsUnique();
+
+                    b.ToTable("ItemCompletions");
+                });
+
             modelBuilder.Entity("HabitsTracker.Api.Models.ListItem", b =>
                 {
                     b.Property<int>("Id")
@@ -238,6 +260,15 @@ namespace HabitsTracker.Api.Migrations
                     b.HasOne("HabitsTracker.Api.Models.Exercise", null)
                         .WithMany("Sets")
                         .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HabitsTracker.Api.Models.ItemCompletion", b =>
+                {
+                    b.HasOne("HabitsTracker.Api.Models.ListItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

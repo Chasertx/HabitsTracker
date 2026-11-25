@@ -95,7 +95,9 @@ export default function RoutineScreen() {
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, isCompleted: done } : i)));
     setDone(next);
     try {
-      await api.items.setCompleted(item.id, next);
+      // The server works out the new streak; take its copy of the item.
+      const updated = await api.items.setCompleted(item.id, next);
+      setItems((prev) => prev.map((i) => (i.id === updated.id ? { ...i, ...updated } : i)));
     } catch {
       setDone(!next);
       setError("Couldn't update item.");
@@ -195,7 +197,7 @@ export default function RoutineScreen() {
               />
             )}
             {items.length > 1 && (
-              <Text style={styles.hint}>Hold an item to reorder · Checked items reset at midnight</Text>
+              <Text style={styles.hint}>Hold to reorder · Swipe left to delete · 🔥 = days in a row</Text>
             )}
           </ScrollView>
         )}

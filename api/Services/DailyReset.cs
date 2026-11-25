@@ -43,7 +43,7 @@ public static class DailyReset
 
     private static string Normalize(string title) => title.Trim().ToUpperInvariant();
 
-    private static TimeZoneInfo ResolveTimeZone(string? id)
+    public static TimeZoneInfo ResolveTimeZone(string? id)
     {
         if (!string.IsNullOrWhiteSpace(id) && TimeZoneInfo.TryFindSystemTimeZoneById(id, out var tz))
             return tz;

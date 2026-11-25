@@ -75,5 +75,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 22,
   },
+  streak: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceRaised,
+  },
+  streakDone: { backgroundColor: colors.accentSoft },
+  streakText: { color: colors.text, fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
   titleDone: { color: colors.textFaint, textDecorationLine: 'line-through' },
 });

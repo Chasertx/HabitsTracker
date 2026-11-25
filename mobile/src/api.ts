@@ -7,6 +7,10 @@ export type ListItem = {
   completedAt: string | null;
   sortOrder: number;
   createdAt: string;
+  /** Consecutive days done, ending today (or yesterday if today isn't done yet). */
+  currentStreak: number;
+  /** Longest run of consecutive days ever. */
+  bestStreak: number;
 };
 
 export type WorkoutSummary = {
@@ -115,7 +119,7 @@ export const api = {
     list: () => request<ListItem[]>(`/items?timeZone=${encodeURIComponent(TIME_ZONE)}`),
     create: (title: string) => request<ListItem>('/items', json('POST', { title })),
     setCompleted: (id: number, isCompleted: boolean) =>
-      request<ListItem>(`/items/${id}`, json('PATCH', { isCompleted })),
+      request<ListItem>(`/items/${id}?timeZone=${encodeURIComponent(TIME_ZONE)}`, json('PATCH', { isCompleted })),
     reorder: (ids: number[]) => request<void>('/items/order', json('PUT', { ids })),
     remove: (id: number) => request<void>(`/items/${id}`, { method: 'DELETE' }),
   },
