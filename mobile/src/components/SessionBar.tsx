@@ -107,7 +107,6 @@ export default function SessionBar({
     <View style={[styles.active, paused && styles.activePaused]}>
       <Text style={styles.progress}>
         {completedSets}/{totalSets} sets done
-        {completedSets < totalSets ? ' · finishes when every set is checked' : ''}
       </Text>
       <View style={styles.actions}>
         {paused ? (
@@ -222,7 +221,7 @@ const styles = StyleSheet.create({
   progress: { color: colors.textMuted, fontSize: 13, fontWeight: '600', paddingHorizontal: 4 },
   actions: { flexDirection: 'row', gap: 10 },
   secondary: {
-    height: 48,
+    height: 40,
     paddingHorizontal: 18,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
@@ -239,7 +238,7 @@ const styles = StyleSheet.create({
   cancelTextArmed: { color: '#fff' },
   primary: {
     flex: 1,
-    height: 48,
+    height: 40,
     borderRadius: radius.md,
     backgroundColor: colors.success,
     flexDirection: 'row',
@@ -248,5 +247,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   resume: { backgroundColor: colors.accent },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  primaryText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

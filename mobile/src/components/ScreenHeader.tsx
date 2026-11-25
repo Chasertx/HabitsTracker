@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  heading: { color: colors.text, fontSize: 36, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
+  heading: { color: colors.text, fontSize: 30, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   below: { marginTop: 16 },
 });

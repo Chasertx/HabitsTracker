@@ -24,6 +24,15 @@ export function formatDateTime(iso: string) {
   return `${date} · ${time}`;
 }
 
+/** Whole days since an ISO time: "Today", "1 day", "12 days". */
+export function formatDaysSince(iso: string, now = new Date()) {
+  const then = new Date(iso);
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(then)) / 86400000);
+  if (days <= 0) return 'Today';
+  return days === 1 ? '1 day' : `${days} days`;
+}
+
 /** Weight without trailing zeros: 145.50 → "145.5". */
 export const formatWeight = (w: number) => String(Math.round(w * 100) / 100);
 

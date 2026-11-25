@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -7,8 +8,9 @@ import { api, type Exercise, type WorkoutDetail } from '../../../api';
 import AddButton from '../../../components/Composer';
 import { EmptyState, ErrorBanner } from '../../../components/Feedback';
 import SessionBar, { type SessionClock, WorkoutTimer } from '../../../components/SessionBar';
+import DraggableList from '../../../components/DraggableList';
 import SimpleRow from '../../../components/SimpleRow';
-import { formatDuration } from '../../../format';
+import { formatDaysSince, formatDuration } from '../../../format';
 import { colors, radius } from '../../../theme';
 
 const isExerciseDone = (x: Exercise) => x.setCount > 0 && x.completedSetCount === x.setCount;
@@ -22,6 +24,7 @@ export default function WorkoutScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ sessionId: number; duration: string } | null>(null);
 
@@ -86,6 +89,26 @@ export default function WorkoutScreen() {
     },
     [workoutId, load],
   );
+
+  const reorder = useCallback(
+    (ids: number[]) => {
+      setExercises((prev) => {
+        const byId = new Map(prev.map((x) => [x.id, x]));
+        return ids.map((id) => byId.get(id)).filter((x): x is Exercise => !!x);
+      });
+      api.workouts.reorderExercises(workoutId, ids).catch(() => {
+        setError("Couldn't save the new order.");
+        load();
+      });
+    },
+    [workoutId, load],
+  );
+
+  const dragStarted = useCallback(() => {
+    setDragging(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  }, []);
+  const dragEnded = useCallback(() => setDragging(false), []);
 
   const runSessionAction = useCallback(
     async (action: () => Promise<void>, failure: string) => {
@@ -175,10 +198,12 @@ export default function WorkoutScreen() {
           <ScrollView
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
+            scrollEnabled={!dragging}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={refresh}
+                enabled={!dragging}
                 tintColor={colors.accent}
                 colors={[colors.accent]}
                 progressBackgroundColor={colors.surfaceRaised}
@@ -188,42 +213,66 @@ export default function WorkoutScreen() {
             {exercises.length === 0 ? (
               <EmptyState title="No exercises yet" body="Tap + to add the exercises in this workout." />
             ) : (
-              exercises.map((x, index) => {
-                const done = isExerciseDone(x);
-                const sets = `${x.setCount} ${x.setCount === 1 ? 'set' : 'sets'}`;
-                return (
-                  <SimpleRow
-                    key={x.id}
-                    title={x.name}
-                    done={done}
-                    subtitle={
-                      done
-                        ? `All ${sets} done`
-                        : active || x.completedSetCount > 0
-                          ? `${x.completedSetCount}/${sets} done`
-                          : sets
-                    }
-                    onPress={() =>
-                      router.push({ pathname: '/workouts/exercises/[id]', params: { id: String(x.id), name: x.name } })
-                    }
-                    trailing={<Ionicons name="chevron-forward" size={18} color={colors.textFaint} />}
-                    leading={
-                      done ? (
-                        <View style={[styles.number, styles.numberDone]} accessibilityLabel="Exercise complete">
-                          <Ionicons name="checkmark" size={18} color="#fff" />
+              <DraggableList
+                data={exercises}
+                keyOf={(x) => x.id}
+                onReorder={reorder}
+                onDragStart={dragStarted}
+                onDragEnd={dragEnded}
+                renderItem={(x) => {
+                  const index = exercises.indexOf(x);
+                  const done = isExerciseDone(x);
+                  const sets = `${x.setCount} ${x.setCount === 1 ? 'set' : 'sets'}`;
+                  return (
+                    <SimpleRow
+                      key={x.id}
+                      title={x.name}
+                      done={done}
+                      subtitle={
+                        done
+                          ? `All ${sets} done`
+                          : active || x.completedSetCount > 0
+                            ? `${x.completedSetCount}/${sets} done`
+                            : sets
+                      }
+                      onPress={() =>
+                        router.push({
+                          pathname: '/workouts/exercises/[id]',
+                          params: { id: String(x.id), name: x.name },
+                        })
+                      }
+                      trailing={
+                        <View
+                          style={styles.since}
+                          accessibilityLabel={
+                            x.lastDoneAt ? `Last done ${formatDaysSince(x.lastDoneAt)} ago` : 'Not done yet'
+                          }
+                        >
+                          <Text style={styles.sinceValue}>{x.lastDoneAt ? formatDaysSince(x.lastDoneAt) : '—'}</Text>
+                          <Text style={styles.sinceLabel}>
+                            {x.lastDoneAt && formatDaysSince(x.lastDoneAt) !== 'Today' ? 'ago' : 'last done'}
+                          </Text>
                         </View>
-                      ) : (
-                        <View style={styles.number}>
-                          <Text style={styles.numberText}>{index + 1}</Text>
-                        </View>
-                      )
-                    }
-                    onDelete={() => remove(x)}
-                    deleteLabel={`Remove ${x.name}`}
-                  />
-                );
-              })
+                      }
+                      leading={
+                        done ? (
+                          <View style={[styles.number, styles.numberDone]} accessibilityLabel="Exercise complete">
+                            <Ionicons name="checkmark" size={18} color="#fff" />
+                          </View>
+                        ) : (
+                          <View style={styles.number}>
+                            <Text style={styles.numberText}>{index + 1}</Text>
+                          </View>
+                        )
+                      }
+                      onDelete={() => remove(x)}
+                      deleteLabel={`Remove ${x.name}`}
+                    />
+                  );
+                }}
+              />
             )}
+            {exercises.length > 1 && <Text style={styles.hint}>Hold to reorder · Swipe left to remove</Text>}
           </ScrollView>
         )}
       </View>
@@ -255,6 +304,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  since: { alignItems: 'flex-end', minWidth: 56 },
+  sinceValue: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  sinceLabel: { color: colors.textFaint, fontSize: 11, fontWeight: '600' },
+  hint: { color: colors.textFaint, fontSize: 13, textAlign: 'center', marginTop: 12 },
   numberDone: { backgroundColor: colors.success },
   numberText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
 });

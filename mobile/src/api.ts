@@ -32,6 +32,8 @@ export type Exercise = {
   sortOrder: number;
   setCount: number;
   completedSetCount: number;
+  /** When a finished session of this workout last included a completed set of this exercise. */
+  lastDoneAt: string | null;
 };
 
 export type ExerciseSet = {
@@ -138,6 +140,8 @@ export const api = {
     remove: (id: number) => request<void>(`/workouts/${id}`, { method: 'DELETE' }),
     addExercise: (workoutId: number, name: string) =>
       request<Exercise>(`/workouts/${workoutId}/exercises`, json('POST', { name })),
+    reorderExercises: (workoutId: number, ids: number[]) =>
+      request<void>(`/workouts/${workoutId}/exercises/order`, json('PUT', { ids })),
     removeExercise: (workoutId: number, exerciseId: number) =>
       request<void>(`/workouts/${workoutId}/exercises/${exerciseId}`, { method: 'DELETE' }),
     /** Starts a session with all sets unchecked. */
@@ -155,8 +159,7 @@ export const api = {
     addSet: (exerciseId: number, values: Partial<Pick<ExerciseSet, 'reps' | 'weight'>> = {}) =>
       request<ExerciseSet>(`/exercises/${exerciseId}/sets`, json('POST', values)),
     updateSet: (setId: number, values: Partial<Pick<ExerciseSet, 'reps' | 'weight' | 'isCompleted'>>) =>
-      // finishedSessionId is set when this update checked off the workout's last set and finished it.
-      request<ExerciseSet & { finishedSessionId: number | null }>(`/sets/${setId}`, json('PATCH', values)),
+      request<ExerciseSet>(`/sets/${setId}`, json('PATCH', values)),
     removeSet: (setId: number) => request<void>(`/sets/${setId}`, { method: 'DELETE' }),
   },
   history: {

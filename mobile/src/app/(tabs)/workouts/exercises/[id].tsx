@@ -37,7 +37,6 @@ export default function ExerciseScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [finishedSessionId, setFinishedSessionId] = useState<number | null>(null);
   const [siblings, setSiblings] = useState<Exercise[]>([]);
 
   const load = useCallback(
@@ -89,13 +88,7 @@ export default function ExerciseScreen() {
     async (set: ExerciseSet, values: { reps?: number; weight?: number; isCompleted?: boolean }) => {
       setSets((prev) => prev.map((s) => (s.id === set.id ? { ...s, ...values } : s)));
       try {
-        const result = await api.exercises.updateSet(set.id, values);
-        if (result.finishedSessionId !== null) {
-          // That was the workout's last set: the server logged it to history and reset the sets.
-          setFinishedSessionId(result.finishedSessionId);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-          load();
-        }
+        await api.exercises.updateSet(set.id, values);
       } catch {
         setError("Couldn't save set.");
         load();
@@ -148,17 +141,7 @@ export default function ExerciseScreen() {
       <Stack.Screen options={{ title: name }} />
 
       <Text style={styles.summary}>{summary}</Text>
-      {finishedSessionId !== null ? (
-        <Pressable
-          onPress={() => router.push({ pathname: '/workouts/history/[id]', params: { id: String(finishedSessionId) } })}
-          style={[styles.notice, styles.noticeDone]}
-          accessibilityRole="button"
-        >
-          <Ionicons name="trophy" size={18} color={colors.success} />
-          <Text style={[styles.noticeText, { flex: 1 }]}>Workout complete · saved to history</Text>
-          <Text style={[styles.noticeText, { color: colors.success, fontWeight: '700' }]}>View</Text>
-        </Pressable>
-      ) : allDone ? (
+      {allDone ? (
         <View style={[styles.notice, styles.noticeDone]}>
           <Ionicons name="checkmark-circle" size={18} color={colors.success} />
           <Text style={styles.noticeText}>Exercise complete</Text>
@@ -222,7 +205,24 @@ export default function ExerciseScreen() {
               <Text style={styles.addSetText}>Add set</Text>
             </Pressable>
 
-            {allDone && next && finishedSessionId === null && (
+            {allDone && siblings.length > 0 && !next && (
+              <Pressable
+                onPress={() => router.back()}
+                style={({ pressed }) => [styles.next, pressed && styles.addSetPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Return to workout"
+              >
+                <View style={styles.nextLabels}>
+                  <Text style={styles.nextText}>Return to workout</Text>
+                  <Text style={styles.nextName} numberOfLines={1}>
+                    Every set is done · finish it there
+                  </Text>
+                </View>
+                <Ionicons name="arrow-back" size={22} color="#fff" />
+              </Pressable>
+            )}
+
+            {allDone && next && (
               <Pressable
                 onPress={goNext}
                 style={({ pressed }) => [styles.next, pressed && styles.addSetPressed]}

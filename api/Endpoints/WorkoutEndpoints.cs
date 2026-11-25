@@ -10,7 +10,10 @@ public static class WorkoutEndpoints
     public record WorkoutSummary(
         int Id, string Name, int ExerciseCount, int SetCount, DateTime CreatedAt, DateTime? ActiveSessionStartedAt,
         DateTime? ActiveSessionPausedAt);
-    public record ExerciseSummary(int Id, int WorkoutId, string Name, int SortOrder, int SetCount, int CompletedSetCount);
+    /// <summary>LastDoneAt: when a finished session of this workout last had a completed set of this exercise (matched by name).</summary>
+    public record ExerciseSummary(
+        int Id, int WorkoutId, string Name, int SortOrder, int SetCount, int CompletedSetCount, DateTime? LastDoneAt = null);
+    public record ReorderRequest(int[] Ids);
     /// <summary>
     /// ActiveSessionPausedSeconds is the paused time so far, not counting a pause in progress
     /// (ActiveSessionPausedAt); elapsed = (pausedAt or now) - startedAt - pausedSeconds.
@@ -87,6 +90,20 @@ public static class WorkoutEndpoints
             await db.SaveChangesAsync();
             return Results.Created($"/api/exercises/{exercise.Id}",
                 new ExerciseSummary(exercise.Id, id, exercise.Name, exercise.SortOrder, 0, 0));
+        });
+
+        // Sets the exercise order to match the given ids; ids not listed keep their relative order after them.
+        workouts.MapPut("/{id:int}/exercises/order", async (int id, ReorderRequest request, AppDbContext db) =>
+        {
+            if (!await db.Workouts.AnyAsync(w => w.Id == id)) return Results.NotFound();
+            var position = request.Ids.Distinct().Select((x, i) => (x, i)).ToDictionary(p => p.x, p => p.i);
+            var ordered = (await db.Exercises.Where(x => x.WorkoutId == id)
+                    .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync())
+                .OrderBy(x => position.TryGetValue(x.Id, out var p) ? p : int.MaxValue)
+                .ToList();
+            for (var i = 0; i < ordered.Count; i++) ordered[i].SortOrder = i;
+            await db.SaveChangesAsync();
+            return Results.NoContent();
         });
 
         workouts.MapDelete("/{id:int}/exercises/{exerciseId:int}", async (int id, int exerciseId, AppDbContext db) =>
@@ -228,7 +245,30 @@ public static class WorkoutEndpoints
         workout.ActiveSessionPausedSeconds = 0;
     }
 
-    private static Task<WorkoutDetail?> LoadDetail(AppDbContext db, int id) =>
+    private static async Task<WorkoutDetail?> LoadDetail(AppDbContext db, int id)
+    {
+        var detail = await LoadDetailCore(db, id);
+        if (detail is null) return null;
+
+        var done = await db.Sessions
+            .Where(s => s.WorkoutId == id)
+            .SelectMany(s => s.Exercises
+                .Where(x => x.Sets.Any(set => set.IsCompleted))
+                .Select(x => new { x.Name, s.FinishedAt }))
+            .ToListAsync();
+        var lastDone = done
+            .GroupBy(x => x.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Max(x => x.FinishedAt), StringComparer.OrdinalIgnoreCase);
+
+        return detail with
+        {
+            Exercises = detail.Exercises
+                .Select(x => x with { LastDoneAt = lastDone.TryGetValue(x.Name.Trim(), out var at) ? at : null })
+                .ToList(),
+        };
+    }
+
+    private static Task<WorkoutDetail?> LoadDetailCore(AppDbContext db, int id) =>
         db.Workouts
             .Where(w => w.Id == id)
             .Select(w => new WorkoutDetail(w.Id, w.Name, w.CreatedAt, w.ActiveSessionStartedAt, w.ActiveSessionPausedAt,
@@ -236,7 +276,7 @@ public static class WorkoutEndpoints
                 w.Exercises
                     .OrderBy(x => x.SortOrder).ThenBy(x => x.Id)
                     .Select(x => new ExerciseSummary(
-                        x.Id, x.WorkoutId, x.Name, x.SortOrder, x.Sets.Count, x.Sets.Count(s => s.IsCompleted)))
+                        x.Id, x.WorkoutId, x.Name, x.SortOrder, x.Sets.Count, x.Sets.Count(s => s.IsCompleted), null))
                     .ToList()))
             .FirstOrDefaultAsync();
 
