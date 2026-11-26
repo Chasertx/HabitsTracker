@@ -36,7 +36,7 @@ function ItemRow({ item, onToggle, onDelete }: Props) {
               style={[styles.streak, done && styles.streakDone]}
               accessibilityLabel={`${item.currentStreak} day streak, best ${item.bestStreak}`}
             >
-              <Ionicons name="flame" size={14} color={done ? colors.accent : colors.textMuted} />
+              <Ionicons name="flame" size={15} color="#FF8A2B" />
               <Text style={styles.streakText}>{item.currentStreak}</Text>
             </View>
           )}
