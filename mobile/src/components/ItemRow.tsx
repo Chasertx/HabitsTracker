@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ListItem } from '../api';
 import { colors, radius, shadow } from '../theme';
@@ -30,6 +31,15 @@ function ItemRow({ item, onToggle, onDelete }: Props) {
           <Text style={[styles.title, done && styles.titleDone]} numberOfLines={3}>
             {item.title}
           </Text>
+          {item.currentStreak > 0 && (
+            <View
+              style={[styles.streak, done && styles.streakDone]}
+              accessibilityLabel={`${item.currentStreak} day streak, best ${item.bestStreak}`}
+            >
+              <Ionicons name="flame" size={14} color={done ? colors.accent : colors.textMuted} />
+              <Text style={styles.streakText}>{item.currentStreak}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
     </SwipeToDelete>
@@ -77,6 +87,9 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.pill,
