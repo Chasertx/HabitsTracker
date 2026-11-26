@@ -180,6 +180,7 @@ export default function ExerciseScreen() {
                   <Text style={[styles.columnLabel, setColumns.set]}>SET</Text>
                   <Text style={[styles.columnLabel, setColumns.value]}>REPS</Text>
                   <Text style={[styles.columnLabel, setColumns.value]}>WEIGHT</Text>
+                  <View style={setColumns.trash} />
                 </View>
                 {sets.map((set, index) => (
                   <SetRow

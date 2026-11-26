@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ExerciseSet } from '../api';
@@ -64,6 +65,25 @@ function SetRow({ set, index, onChange, onDelete, onToggle }: Props) {
     setWeight(text);
   };
 
+  // Tap the trash once to arm it (turns red), tap again within 3s to delete.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(t);
+  }, [armed]);
+  const remove = () => {
+    pending.current.deleted = true;
+    onDelete(set);
+  };
+  const tapDelete = () => {
+    if (armed) remove();
+    else {
+      setArmed(true);
+      Haptics.selectionAsync().catch(() => {});
+    }
+  };
+
   const commitReps = () => {
     const value = parseReps(reps);
     const text = String(value ?? set.reps);
@@ -79,15 +99,7 @@ function SetRow({ set, index, onChange, onDelete, onToggle }: Props) {
   };
 
   return (
-    <SwipeToDelete
-      onDelete={() => {
-        // Skip the unmount save: this set is about to stop existing.
-        pending.current.deleted = true;
-        onDelete(set);
-      }}
-      label={`Remove set ${index + 1}`}
-      style={styles.spacing}
-    >
+    <SwipeToDelete onDelete={remove} label={`Remove set ${index + 1}`} style={styles.spacing}>
       <View style={[styles.row, set.isCompleted && styles.rowDone]}>
         <Pressable
           onPress={() => onToggle(set)}
@@ -123,6 +135,15 @@ function SetRow({ set, index, onChange, onDelete, onToggle }: Props) {
           style={[styles.input, set.isCompleted && styles.inputDone]}
           accessibilityLabel={`Set ${index + 1} weight`}
         />
+        <Pressable
+          onPress={tapDelete}
+          hitSlop={8}
+          style={({ pressed }) => [styles.trash, armed && styles.trashArmed, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={armed ? `Confirm remove set ${index + 1}` : `Remove set ${index + 1}`}
+        >
+          <Ionicons name={armed ? 'trash' : 'trash-outline'} size={18} color={armed ? '#fff' : colors.textFaint} />
+        </Pressable>
       </View>
     </SwipeToDelete>
   );
@@ -134,6 +155,7 @@ export default memo(SetRow);
 export const setColumns = StyleSheet.create({
   set: { width: 40, alignItems: 'center' },
   value: { flex: 1 },
+  trash: { width: 34 },
 });
 
 const styles = StyleSheet.create({
@@ -172,5 +194,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  trash: {
+    ...setColumns.trash,
+    height: 34,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trashArmed: { backgroundColor: colors.danger },
   inputDone: { color: colors.textMuted },
 });
