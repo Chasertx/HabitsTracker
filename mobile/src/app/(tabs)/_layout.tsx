@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme';
 
@@ -46,6 +46,14 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="workouts"
+        // Always land on the workouts list. After a widget deep link the tab's stack can be left in a
+        // state where the default tab press does nothing, so navigate explicitly.
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate('/workouts');
+          },
+        }}
         options={{
           title: 'Workouts',
           tabBarIcon: ({ size, focused }) => (
