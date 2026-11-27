@@ -2,7 +2,7 @@
   "expo": {
     "name": "Habits",
     "slug": "habits-tracker",
-    "version": "1.8.2",
+    "version": "1.9.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -18,13 +18,31 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.chasertx.habitstracker",
-      "versionCode": 11
+      "versionCode": 12
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Routine",
+              "label": "Routine",
+              "description": "Today's routine. Tap an item to check it off.",
+              "minWidth": "250dp",
+              "minHeight": "180dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 3,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "scheme": "habits",
     "experiments": {

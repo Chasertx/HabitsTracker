@@ -17,6 +17,8 @@ import { EmptyState, ErrorBanner } from '../../components/Feedback';
 import ItemRow from '../../components/ItemRow';
 import ScreenHeader from '../../components/ScreenHeader';
 import { colors, radius } from '../../theme';
+import { updateRoutineWidget } from '../../widget/handler';
+import { routineOrder } from '../../widget/RoutineWidget';
 
 const msUntilNextMidnight = () => {
   const now = new Date();
@@ -120,19 +122,30 @@ export default function RoutineScreen() {
     }
   }, []);
 
+  // The list shows checked items below unchecked ones. A drag reorders within each group and
+  // keeps each group in its own slots of the saved order, so unchecking puts an item back in place.
   const reorder = useCallback(
     (ids: number[]) => {
-      setItems((prev) => {
-        const byId = new Map(prev.map((i) => [i.id, i]));
-        return ids.map((id) => byId.get(id)).filter((i): i is ListItem => !!i);
-      });
-      api.items.reorder(ids).catch(() => {
+      const byId = new Map(items.map((i) => [i.id, i]));
+      const shown = ids.map((id) => byId.get(id)).filter((i): i is ListItem => !!i);
+      const todo = shown.filter((i) => !i.isCompleted);
+      const done = shown.filter((i) => i.isCompleted);
+      const next = items.map((i) => (i.isCompleted ? done.shift() : todo.shift()) ?? i);
+      setItems(next);
+      api.items.reorder(next.map((i) => i.id)).catch(() => {
         setError("Couldn't save the new order.");
         load();
       });
     },
-    [load],
+    [items, load],
   );
+
+  const shownItems = useMemo(() => routineOrder(items), [items]);
+
+  // Keep the home-screen widget in step with the app.
+  useEffect(() => {
+    if (!loading) updateRoutineWidget(items);
+  }, [items, loading]);
 
   const dragStarted = useCallback(() => {
     setDragging(true);
@@ -185,7 +198,7 @@ export default function RoutineScreen() {
               <EmptyState title="All clear" body="Add your first item above." />
             ) : (
               <DraggableList
-                data={items}
+                data={shownItems}
                 keyOf={(i) => i.id}
                 renderItem={renderItem}
                 onReorder={reorder}
