@@ -12,14 +12,21 @@ type Props = {
   maxLength?: number;
   /** Smaller button for the navigation bar. */
   compact?: boolean;
+  /** Opens the dialog whenever this changes to a new truthy value (e.g. from a deep link). */
+  openRequest?: string;
 };
 
 /**
  * A "+" button that opens a small dialog to name the new thing. The keyboard's Done key
  * adds it; tapping outside the dialog (or Back) cancels.
  */
-export default function AddButton({ label, placeholder, onSubmit, maxLength = 100, compact }: Props) {
-  const [open, setOpen] = useState(false);
+export default function AddButton({ label, placeholder, onSubmit, maxLength = 100, compact, openRequest }: Props) {
+  const [open, setOpen] = useState(!!openRequest);
+  const [seenRequest, setSeenRequest] = useState(openRequest);
+  if (openRequest !== seenRequest) {
+    setSeenRequest(openRequest);
+    if (openRequest) setOpen(true);
+  }
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
 

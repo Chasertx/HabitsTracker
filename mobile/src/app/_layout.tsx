@@ -1,8 +1,10 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { AppState, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors } from '../theme';
+import { updateWorkoutWidget } from '../widget/handler';
 
 const theme = {
   ...DarkTheme,
@@ -18,6 +20,15 @@ const theme = {
 
 // Every screen lives inside the tabs; each tab that needs deeper pages has its own stack.
 export default function RootLayout() {
+  // Workout changes happen across several screens; bring the home-screen widget up to date
+  // whenever the app is left.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') updateWorkoutWidget();
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <GestureHandlerRootView style={styles.flex}>
       <ThemeProvider value={theme}>

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams } from 'expo-router';
 import { api, type ListItem } from '../../api';
 import AddButton from '../../components/Composer';
 import DraggableList from '../../components/DraggableList';
@@ -28,6 +29,8 @@ const msUntilNextMidnight = () => {
 
 export default function RoutineScreen() {
   const scrollRef = useRef<ScrollViewInstance>(null);
+  // The widget's + button opens habits:///?add=<time>, which opens the add dialog here.
+  const { add: addRequest } = useLocalSearchParams<{ add?: string }>();
   const [items, setItems] = useState<ListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -170,7 +173,15 @@ export default function RoutineScreen() {
           day: 'numeric',
         })}
         title="Routine"
-        actions={<AddButton label="Add item" placeholder="Item name…" onSubmit={add} maxLength={200} />}
+        actions={
+          <AddButton
+            label="Add item"
+            placeholder="Item name…"
+            onSubmit={add}
+            maxLength={200}
+            openRequest={addRequest}
+          />
+        }
       />
 
       <View style={styles.body}>

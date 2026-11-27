@@ -2,7 +2,7 @@
   "expo": {
     "name": "Habits",
     "slug": "habits-tracker",
-    "version": "1.9.0",
+    "version": "1.10.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -18,7 +18,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.chasertx.habitstracker",
-      "versionCode": 12
+      "versionCode": 13
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,6 +37,17 @@
               "minHeight": "180dp",
               "targetCellWidth": 4,
               "targetCellHeight": 3,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Workout",
+              "label": "Workout",
+              "description": "Start a workout and check off its sets.",
+              "minWidth": "250dp",
+              "minHeight": "130dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
               "resizeMode": "horizontal|vertical",
               "updatePeriodMillis": 1800000
             }
