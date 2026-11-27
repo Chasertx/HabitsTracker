@@ -36,7 +36,7 @@ function ItemRow({ item, onToggle, onDelete }: Props) {
               style={[styles.streak, done && styles.streakDone]}
               accessibilityLabel={`${item.currentStreak} day streak, best ${item.bestStreak}`}
             >
-              <Ionicons name="flame" size={15} color="#FF8A2B" />
+              <Ionicons name="flame" size={18} color="#FF8A2B" />
               <Text style={styles.streakText}>{item.currentStreak}</Text>
             </View>
           )}
@@ -64,13 +64,13 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
     gap: 14,
   },
   check: {
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     borderRadius: radius.pill,
     borderWidth: 2,
     borderColor: colors.textFaint,
@@ -78,24 +78,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  checkMark: { color: '#fff', fontSize: 14, fontWeight: '800', marginTop: -1 },
+  checkMark: { color: '#fff', fontSize: 16, fontWeight: '800', marginTop: -1 },
   title: {
     flex: 1,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
-    lineHeight: 22,
+    lineHeight: 25,
   },
   streak: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceRaised,
   },
   streakDone: { backgroundColor: colors.accentSoft },
-  streakText: { color: colors.text, fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  streakText: { color: colors.text, fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
   titleDone: { color: colors.textFaint, textDecorationLine: 'line-through' },
 });
