@@ -12,5 +12,5 @@ export const wc = {
   flame: '#FF8A2B',
 } as const;
 
-/** How many ~42dp rows fit in a widget of this height under its ~56dp header. */
-export const rowsThatFit = (heightDp: number | undefined) => Math.max(1, Math.floor(((heightDp ?? 180) - 56) / 42));
+/** How many ~52dp rows fit in a widget of this height under its ~64dp header. */
+export const rowsThatFit = (heightDp: number | undefined) => Math.max(1, Math.floor(((heightDp ?? 180) - 64) / 52));

@@ -31,15 +31,15 @@ function Button({ label, action, data, color, flex = 1 }: ButtonProps) {
       accessibilityLabel={label}
       style={{
         flex,
-        height: 40,
-        borderRadius: 12,
+        height: 50,
+        borderRadius: 14,
         backgroundColor: color,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 6,
       }}
     >
-      <TextWidget text={label} style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }} />
+      <TextWidget text={label} style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }} />
     </FlexWidget>
   );
 }
@@ -68,27 +68,27 @@ function Pick({ state, height }: Props) {
   return (
     <FlexWidget style={{ width: 'match_parent', flexDirection: 'column' }}>
       <FlexWidget clickAction="OPEN_URI" clickActionData={{ uri: 'habits:///workouts' }} style={{ marginBottom: 10 }}>
-        <TextWidget text="Workouts" style={{ fontSize: 18, fontWeight: '700', color: wc.text }} />
+        <TextWidget text="Workouts" style={{ fontSize: 20, fontWeight: '700', color: wc.text }} />
       </FlexWidget>
       {state.kind === 'loading' || state.kind === 'error' ? (
         <TextWidget
           text={state.kind === 'error' ? "Can't reach the server · tap to retry" : 'Loading…'}
           clickAction="REFRESH"
-          style={{ fontSize: 14, color: wc.muted }}
+          style={{ fontSize: 16, color: wc.muted }}
         />
       ) : workouts.length === 0 ? (
-        <TextWidget text="No workouts yet · add one in the app" style={{ fontSize: 14, color: wc.muted }} />
+        <TextWidget text="No workouts yet · add one in the app" style={{ fontSize: 16, color: wc.muted }} />
       ) : (
         workouts.slice(0, max).map((w) => (
           <FlexWidget
             key={w.id}
             style={{
               width: 'match_parent',
-              height: 36,
+              height: 46,
               flexDirection: 'row',
               alignItems: 'center',
               backgroundColor: wc.surface,
-              borderRadius: 12,
+              borderRadius: 14,
               paddingLeft: 12,
               paddingRight: 4,
               marginBottom: 6,
@@ -103,7 +103,7 @@ function Pick({ state, height }: Props) {
                 text={w.name}
                 maxLines={1}
                 truncate="END"
-                style={{ fontSize: 15, fontWeight: '600', color: wc.text }}
+                style={{ fontSize: 17, fontWeight: '600', color: wc.text }}
               />
             </FlexWidget>
             {w.setCount > 0 ? (
@@ -112,14 +112,14 @@ function Pick({ state, height }: Props) {
                 clickActionData={{ id: w.id }}
                 accessibilityLabel={`Start ${w.name}`}
                 style={{
-                  height: 28,
-                  paddingHorizontal: 14,
+                  height: 36,
+                  paddingHorizontal: 18,
                   borderRadius: 14,
                   backgroundColor: wc.accent,
                   justifyContent: 'center',
                 }}
               >
-                <TextWidget text="Start" style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }} />
+                <TextWidget text="Start" style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }} />
               </FlexWidget>
             ) : null}
           </FlexWidget>
@@ -146,18 +146,18 @@ function Active({ workout, exercise, set, setNumber, busy, confirmFinish }: Acti
             text={workout.name}
             maxLines={1}
             truncate="END"
-            style={{ fontSize: 16, fontWeight: '700', color: wc.text }}
+            style={{ fontSize: 18, fontWeight: '700', color: wc.text }}
           />
         </FlexWidget>
         <TextWidget
           text={paused ? 'Paused' : `${done}/${total} sets`}
-          style={{ fontSize: 13, fontWeight: '700', color: paused ? wc.flame : wc.success }}
+          style={{ fontSize: 15, fontWeight: '700', color: paused ? wc.flame : wc.success }}
         />
       </FlexWidget>
 
       <FlexWidget style={{ flex: 1, width: 'match_parent', flexDirection: 'column', justifyContent: 'center' }}>
         {busy ? (
-          <TextWidget text={busy} style={{ fontSize: 15, color: wc.muted }} />
+          <TextWidget text={busy} style={{ fontSize: 17, color: wc.muted }} />
         ) : exercise && set ? (
           <FlexWidget
             clickAction="OPEN_URI"
@@ -168,15 +168,15 @@ function Active({ workout, exercise, set, setNumber, busy, confirmFinish }: Acti
               text={exercise.name}
               maxLines={1}
               truncate="END"
-              style={{ fontSize: 20, fontWeight: '800', color: wc.text }}
+              style={{ fontSize: 23, fontWeight: '800', color: wc.text }}
             />
             <TextWidget
               text={`Set ${setNumber} of ${exercise.setCount} · ${set.reps} reps × ${formatWeight(set.weight)}`}
-              style={{ fontSize: 14, color: wc.muted, marginTop: 2 }}
+              style={{ fontSize: 16, color: wc.muted, marginTop: 2 }}
             />
           </FlexWidget>
         ) : (
-          <TextWidget text="Every set is done 🎉" style={{ fontSize: 18, fontWeight: '700', color: wc.success }} />
+          <TextWidget text="Every set is done 🎉" style={{ fontSize: 20, fontWeight: '700', color: wc.success }} />
         )}
       </FlexWidget>
 

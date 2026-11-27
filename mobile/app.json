@@ -2,7 +2,7 @@
   "expo": {
     "name": "Habits",
     "slug": "habits-tracker",
-    "version": "1.10.2",
+    "version": "1.11.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -18,7 +18,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.chasertx.habitstracker",
-      "versionCode": 15
+      "versionCode": 16
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +34,7 @@
               "label": "Routine",
               "description": "Today's routine. Tap an item to check it off.",
               "minWidth": "250dp",
-              "minHeight": "180dp",
+              "minHeight": "220dp",
               "targetCellWidth": 4,
               "targetCellHeight": 3,
               "resizeMode": "horizontal|vertical",
@@ -45,7 +45,7 @@
               "label": "Workout",
               "description": "Start a workout and check off its sets.",
               "minWidth": "250dp",
-              "minHeight": "130dp",
+              "minHeight": "160dp",
               "targetCellWidth": 4,
               "targetCellHeight": 2,
               "resizeMode": "horizontal|vertical",
