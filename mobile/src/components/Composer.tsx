@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, radius } from '../theme';
@@ -29,6 +29,7 @@ export default function AddButton({ label, placeholder, onSubmit, maxLength = 10
   }
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const input = useRef<ComponentRef<typeof TextInput>>(null);
 
   const close = () => {
     setOpen(false);
@@ -62,13 +63,24 @@ export default function AddButton({ label, placeholder, onSubmit, maxLength = 10
         <Ionicons name="add" size={compact ? 26 : 32} color="#fff" />
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={close}
+        statusBarTranslucent
+        // autoFocus alone often doesn't raise the keyboard inside an Android Modal, so focus once it's shown.
+        onShow={() => {
+          setTimeout(() => input.current?.focus(), 50);
+        }}
+      >
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Cancel">
             {/* Taps inside the card must not reach the backdrop. */}
             <Pressable style={styles.card} onPress={() => {}} accessible={false}>
               <Text style={styles.title}>{label}</Text>
               <TextInput
+                ref={input}
                 value={draft}
                 onChangeText={setDraft}
                 onSubmitEditing={submit}
